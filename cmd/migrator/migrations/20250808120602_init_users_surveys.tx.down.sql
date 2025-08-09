@@ -1,0 +1,8 @@
+drop table user_surveys;
+drop table survey_questions;
+drop table surveys;
+drop table users;
+drop table roles;
+drop type question_type;
+drop type role_permission;
+drop extension "uuid-ossp";

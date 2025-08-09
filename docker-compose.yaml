@@ -1,0 +1,62 @@
+version: "3.8"
+services:
+  app:
+    container_name: launchl-container
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+      - "2345:2345" # debug
+    volumes:
+      - ./:/app:cached
+    networks:
+     - launchl-network
+
+  valkeree:
+    container_name: launcl-valkee
+    image: valkey/valkey:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    command: valkey-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - launchl-network
+
+  postgres:
+    container_name: launchl-db
+    image: postgres:15-alpine
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5434:5434"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d launchl"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - launchl-network
+
+volumes:
+  postgres_data:
+  valkey_data:
+
+networks:
+  launchl-network:
+    driver: bridge
