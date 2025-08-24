@@ -39,6 +39,19 @@ func (u UserRepo) Get(ctx context.Context, uid string) (*domain.User, error) {
 	return &usr, nil
 }
 
+func (u UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	var usr domain.User
+	err := u.repo.BnDB().NewSelect().Model(&usr).Where("? = ?", bun.Ident("email"), email).Scan(ctx)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, repos.ErrNoRecords
+		}
+		return nil, errors.Join(repos.ErrDBRead, err)
+	}
+	return &usr, nil
+}
+
 func (u UserRepo) GetAll(ctx context.Context) ([]*domain.User, error) {
 	usrs, err := u.repo.GetAll(ctx)
 	if err != nil {
@@ -107,11 +120,23 @@ func (u UserRepo) Delete(ctx context.Context, id string) error {
 		return errors.Join(repos.ErrFailedTransaction, err)
 	}
 
-	_, err = tx.NewDelete().Model(&usr).Where("? = ?", bun.Ident("id"), id).Exec(ctx)
-	if err != nil {
+	if _, err = tx.NewDelete().Model(&usr).Where("? = ?", bun.Ident("id"), id).Exec(ctx); err != nil {
 		return errors.Join(repos.ErrDBDelete, err)
 	}
 
+	return nil
+}
+
+func (u UserRepo) DeleteByEmail(ctx context.Context, email string) error {
+	var usr domain.User
+	tx, err := u.repo.BnDB().BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return errors.Join(repos.ErrFailedTransaction, err)
+	}
+
+	if _, err := tx.NewDelete().Model(&usr).Where("? = ?", bun.Ident("email"), email).Exec(ctx); err != nil {
+		return errors.Join(repos.ErrDBDelete, err)
+	}
 	return nil
 }
 

@@ -21,7 +21,7 @@ import (
 
 func NewServer(cfg config.ServerCfg, apis []services.Service) *http.Server {
 	mux := http.NewServeMux()
-	mwChain := middleware.MiddlewareChain(handlePanic, loggerMiddleware, headerMiddleware, contextMiddleware)
+	mwChain := middleware.MiddlewareChain(handlePanic, loggerMiddleware, addJsonHeader, headerMiddleware, contextMiddleware)
 	registerRoutes(mux, apis)
 	server := &http.Server{
 		Addr:         cfg.Host,
@@ -63,6 +63,13 @@ func Authenticate(next http.Handler) http.HandlerFunc {
 			return
 		}
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+func addJsonHeader(next http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		request.SetJSONHeader(w)
 		next.ServeHTTP(w, r)
 	})
 }

@@ -205,10 +205,18 @@ func ParseUUID(r *http.Request) (string, error) {
 	uid := r.PathValue("id")
 
 	if uid == "" {
-		return "", errors.New("failed to parse uuid from request")
+		return "", errors.New("user id is required")
 	}
 
 	return uid, nil
+}
+
+func ParseEmail(r *http.Request) (string, error) {
+	email := r.PathValue("email")
+	if email == "" {
+		return "", errors.New("email is required")
+	}
+	return email, nil
 }
 
 func ParsePagenation(r *http.Request) (Pager, error) {
@@ -229,6 +237,14 @@ func ParsePagenation(r *http.Request) (Pager, error) {
 	}
 
 	return Pager{Page: page, Limit: lmt}, nil
+}
+
+func WriteBadResponse(w http.ResponseWriter, err error) {
+	WriteErr(w, http.StatusBadRequest, err)
+}
+
+func WriteServerError(w http.ResponseWriter, err error) {
+	WriteErr(w, http.StatusInternalServerError, err)
 }
 
 // TODO: have something like this to make a dto handler for validating dtos?

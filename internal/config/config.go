@@ -17,7 +17,7 @@ type Config struct {
 	Database   DatabaseCfg
 	AWS        AWSCfg
 	OpenSearch OpenSearchCfg
-	Redis      RedisCfg
+	Valkey     ValkeyCfg
 	Jwt        JWTCfg
 }
 
@@ -65,11 +65,15 @@ type OpenSearchCfg struct {
 	UseSSL   bool
 }
 
-type RedisCfg struct {
-	Host     string
-	Port     string
-	Password string
-	DB       int
+type ValkeyCfg struct {
+	Host string
+	Port string
+}
+
+type EmailCfg struct {
+	Sender          string
+	Attempts        int64
+	TemplateVersion int
 }
 
 type JWTCfg struct {
@@ -87,10 +91,7 @@ func Load() (*Config, error) {
 	// if err := godotenv.Load(".env"); err != nil {
 	// 	log.Printf("warning could not load .env file %v", err)
 	// }
-	appEnv, err := initializeEnv()
-	if err != nil {
-		log.Println(err.Error())
-	}
+	appEnv := initializeEnv()
 
 	return &Config{
 		Env: appEnv,
@@ -135,11 +136,9 @@ func Load() (*Config, error) {
 			Index:    getEnv("OPENSEARCH_INDEX", "documents"),
 			UseSSL:   getBoolEnv("OPENSEARCH_USE_SSL", true),
 		},
-		Redis: RedisCfg{
-			Host:     getEnv("REDIS_HOST", "localhost"),
-			Port:     getEnv("REDIS_PORT", "6379"),
-			Password: getEnv("REDIS_PASSWORD", ""),
-			DB:       getIntEnv("REDIS_DB", 0),
+		Valkey: ValkeyCfg{
+			Host: getEnv("VALKEY_HOST", "localhost"),
+			Port: getEnv("VALKEY_PORT", "6379"),
 		},
 		Jwt: JWTCfg{
 			Secret:     mustGetEnv("JWT_SECRET"),
@@ -150,10 +149,7 @@ func Load() (*Config, error) {
 }
 
 func LoadDBConfig() (DatabaseCfg, error) {
-	_, err := initializeEnv()
-	if err != nil {
-		return DatabaseCfg{}, err
-	}
+	_ = initializeEnv()
 
 	return DatabaseCfg{
 		Provider:        mustGetEnv("DB_PROVIDER"),
@@ -176,28 +172,40 @@ func LoadDBConfig() (DatabaseCfg, error) {
 	}, nil
 }
 
-func GetAuthToken() ([]byte, error) {
-	_, err := initializeEnv()
-	if err != nil {
-		log.Println(err.Error())
+func LoadValkey() ValkeyCfg {
+	_ = initializeEnv()
+	return ValkeyCfg{
+		Host: mustGetEnv("VALKEY_HOST"),
+		Port: mustGetEnv("VALKEY_HOST"),
 	}
+}
 
+func LoadEmailConfig() EmailCfg {
+	_ = initializeEnv()
+	return EmailCfg{
+		Sender:          mustGetEnv("EMAIL_SENDER"),
+		Attempts:        getInt64Env("EMAIL_ATTEMPTS", 1),
+		TemplateVersion: getIntEnv("EMAIL_TEMPLATE_VERSION", 1),
+	}
+}
+
+func GetAuthToken() ([]byte, error) {
+	_ = initializeEnv()
 	authKey := mustGetEnv("AUTH_KEY")
-
 	return []byte(authKey), nil
 }
 
-func initializeEnv() (string, error) {
+func initializeEnv() string {
 	appEnv := getEnv("ENV", "dev")
 	if err := godotenv.Load(fmt.Sprintf(".env.%s", appEnv)); err != nil {
-		return "", fmt.Errorf("%s env does not exist", appEnv)
+		log.Printf("%s env does not exist", appEnv)
 	}
 
 	if err := godotenv.Load(".env"); err != nil {
-		return "", fmt.Errorf("warning could not load .env file %v", err)
+		log.Printf("warning could not load .env file %v", err)
 	}
 
-	return appEnv, nil
+	return appEnv
 }
 
 func getEnv(key, fallback string) string {
@@ -221,6 +229,16 @@ func getIntEnv(key string, fallback int) int {
 			return i
 		}
 	}
+	return fallback
+}
+
+func getInt64Env(key string, fallback int64) int64 {
+	if value := os.Getenv(key); value != "" {
+		if i, err := strconv.ParseInt(value, 10, 64); err != nil {
+			return i
+		}
+	}
+
 	return fallback
 }
 

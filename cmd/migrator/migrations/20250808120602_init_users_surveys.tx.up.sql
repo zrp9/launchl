@@ -11,6 +11,14 @@ do $$ begin
 
 end $$;
 
+create table if not exists features(
+	id uuid default uuid_generate_v4() primary key,
+	name varchar(150) not null,
+	details	text not null,
+	created_at timestamptz not null default current_timestamp,
+	updated_at timestamptz not null default current_timestamp
+);
+
 create table if not exists roles(
 	id uuid default uuid_generate_v4() primary key,
 	name varchar(255) not null unique,

@@ -11,6 +11,7 @@ import (
 	"github.com/zrp9/launchl/internal/repos/userrepo"
 	"github.com/zrp9/launchl/internal/services"
 	"github.com/zrp9/launchl/internal/services/userservice"
+	"github.com/zrp9/launchl/internal/services/valkaree"
 )
 
 type Container struct {
@@ -48,7 +49,9 @@ func (c Container) createService(name string) (services.Service, error) {
 	switch name {
 	case "user":
 		userRepo := userrepo.New(c.store)
-		usrService := userservice.New(userRepo, configRepo, v)
+		s := valkaree.Stream{}
+		sw := s.Writer()
+		usrService := userservice.New(userRepo, configRepo, sw, v)
 		return userservice.Initialize(usrService, c.logger), nil
 	default:
 		return nil, fmt.Errorf("unknown service %v", name)
