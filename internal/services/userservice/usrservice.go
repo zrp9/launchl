@@ -58,7 +58,7 @@ func (us UserService) Create(ctx context.Context, usr *domain.User) (*domain.Use
 		if _, err := us.streamWriter.WriteJob(ctx, "email-notification", "email-consumer", "user-service", data); err != nil {
 			us.log.MustTrace(fmt.Sprintf("failed to write job to stream %v", err))
 		}
-		// TODO: remove this log
+		// TODO: remove this log before deploying
 		us.log.MustDebug("notification successfuly wrote to stream")
 	}()
 
@@ -100,6 +100,15 @@ func (us UserService) GetAll(ctx context.Context) ([]*domain.User, error) {
 	return usrs, nil
 }
 
+func (us UserService) CheckQue(ctx context.Context, email string) (int64, error) {
+	pos, err := us.repo.GetQuePosition(ctx, email)
+	if err != nil {
+		return -1, err
+	}
+
+	return pos, nil
+}
+
 func (us UserService) Delete(ctx context.Context, id string) error {
 	if err := us.repo.Delete(ctx, id); err != nil {
 		return err
@@ -108,7 +117,7 @@ func (us UserService) Delete(ctx context.Context, id string) error {
 }
 
 func (us UserService) DeleteByEmail(ctx context.Context, email string) error {
-	if err := us.repo.DeleteByEmail(email); err != nil {
+	if err := us.repo.DeleteByEmail(ctx, email); err != nil {
 		return err
 	}
 
@@ -133,6 +142,7 @@ func (us UserService) createEmailPayload(usr *domain.User, notificationType, sub
 		TemplateVersion: strconv.Itoa(emailCfg.TemplateVersion),
 		Subject:         subject,
 	}
+
 	data, err := json.Marshal(ejob)
 	if err != nil {
 		return data, err

@@ -35,8 +35,9 @@ create table if not exists users (
 	last_name VARCHAR(100) NOT NULL,
 	role_id INTEGER NOT NULL REFERENCES roles(id),
 	would_use boolean default false,
-	address jsonb not null,
+	comments text null,
 	company_name varchar(150) not null,
+	que_position integer not null,
 	created_at TIMESTAMPTZ not null DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMPTZ not null DEFAULT CURRENT_TIMESTAMP
 )

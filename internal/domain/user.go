@@ -18,11 +18,12 @@ type User struct {
 	Phone       string    `bun:"type:varchar(12),notnull" json:"phone" validate:"numeric"`
 	FirstName   string    `bun:"type:varchar(100),notnull" json:"firstName" validate:"alpha,min=1,max=150"`
 	LastName    string    `bun:"type:varchar(100),notnull" json:"lastName" validate:"alpha,min=1,max=150"`
-	RoleID      uuid.UUID `bun:"type:uuid,notnull" json:"roleId"`
+	RoleID      uuid.UUID `bun:"type:uuid,notnull" json:"roleId" validate:"uuid4"`
 	Role        *Role     `bun:"rel:belongs-to,join:role_id=id" json:"role"`
 	WouldUse    bool      `bun:"type:boolean,notnull,nullzero,default=false" json:"wouldUse" validate:"boolean"`
-	Comments    string    `bun:"type:text,null,nullzero" json:"comments"`
+	Comments    string    `bun:"type:text,null,nullzero" json:"comments" validate:"alphanum"`
 	CompanyName string    `bun:"type:varchar(150),null,nullzero" json:"companyName" validate:"alphanum"`
+	QuePosition int64     `bun:"type:integer,null,nullzero" json:"quePosition" validate:"number,min=1,"`
 	Surveys     []Survey  `bun:"m2m:user_survey,join:User=Survey" json:"surveys"`
 	CreatedAt   time.Time `bun:"type:timestamptz,notnull,nullzero,default=current_timestamp" json:"createdAt"`
 	UpdatedAt   time.Time `bun:"type:timestamptz,notnull,nullzero,default=current_timestamp" json:"updatedAt"`

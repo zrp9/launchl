@@ -140,6 +140,21 @@ func (u UserRepo) DeleteByEmail(ctx context.Context, email string) error {
 	return nil
 }
 
+func (u UserRepo) GetQuePosition(ctx context.Context, email string) (int64, error) {
+	var usr domain.User
+	tx, err := u.repo.BnDB().BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return -1, errors.Join(repos.ErrFailedTransaction, err)
+	}
+
+	err = tx.NewSelect().Model(&usr).Where("? = ?", bun.Ident("email"), email).Scan(ctx, &usr)
+	if err != nil {
+		return -1, errors.Join(repos.ErrDBRead, err)
+	}
+
+	return usr.QuePosition, nil
+}
+
 func (u UserRepo) FetchByUsername(ctx context.Context, usrname string) (domain.User, error) {
 	var usr domain.User
 	err := u.repo.BnDB().NewSelect().Model(&domain.User{}).Where("? = ?", bun.Ident("username"), usrname).Scan(ctx, &usr)

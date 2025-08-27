@@ -28,7 +28,7 @@ func (u UserAPI) Name() string {
 func (u UserAPI) RegisterRoutes(m *http.ServeMux) {
 	// this is how i could have the main registerRoutes func call pass in prefixes
 	//m.HandleFunc(fmt.Sprintf("GET /%v", prefix), u.HandleFetchUsers)
-	m.HandleFunc("POST /user/subscribe", u.HandleAddUser)
+	m.HandleFunc("POST /user/subscribe", u.HandleSubscribe)
 	m.HandleFunc("GET /user/{email}", u.HandleGetUser)
 	// get users number in queue
 	m.HandleFunc("GET /user/{email}/position", u.HandleCheckQueue)
@@ -88,17 +88,17 @@ func (u UserAPI) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		u.logger.MustDebugErr(request.ErrReqTimeout)
 		request.HandleTimeout(w)
 	default:
-		id, err := request.ParseUUID(r)
+		email, err := request.ParseEmail(r)
 		if err != nil {
 			u.logger.MustDebugErr(err)
-			request.WriteErr(w, http.StatusBadRequest, err)
+			request.WriteBadResponse(w, err)
 			return
 		}
 
-		err = u.s.Delete(r.Context(), id)
+		err = u.s.DeleteByEmail(r.Context(), email)
 		if err != nil {
 			u.logger.MustDebugErr(err)
-			request.WriteErr(w, http.StatusInternalServerError, err)
+			request.WriteServerError(w, err)
 			return
 		}
 
@@ -174,14 +174,19 @@ func (u UserAPI) HandleCheckQueue(w http.ResponseWriter, r *http.Request) {
 		u.logger.MustDebugErr(request.ErrReqTimeout)
 		request.HandleTimeout(w)
 	default:
-		usrs, err := u.s.GetAll(r.Context())
+		email, err := request.ParseEmail(r)
 		if err != nil {
-			request.WriteErr(w, http.StatusInternalServerError, err)
+			request.WriteErr(w, http.StatusBadRequest, err)
 			return
 		}
 
+		position, err := u.s.GetPosition(r.Context(), email)
+		if err != nil {
+			request.WriteErr(w, http.StatusBadRequest, err)
+		}
+
 		res := request.JSON{
-			"users": usrs,
+			"quePosition": position,
 		}
 		if err := request.WriteJSON(w, http.StatusOK, res); err != nil {
 			request.WriteErr(w, http.StatusInternalServerError, err)
