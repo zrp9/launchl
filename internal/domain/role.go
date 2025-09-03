@@ -1,3 +1,4 @@
+// Package role entity
 package domain
 
 import (

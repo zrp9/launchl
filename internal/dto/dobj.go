@@ -4,6 +4,9 @@ package dto
 import (
 	"errors"
 	"mime/multipart"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type Transferer interface {
@@ -11,6 +14,31 @@ type Transferer interface {
 }
 
 type DTO struct {
+}
+
+type SurveyResponse struct {
+	OptionID   uuid.UUID `json:"optionId" validate:"uuidv4,required"`
+	UserID     uuid.UUID `json:"userId" validate:"uuidv4,required"`
+	QuestionID uuid.UUID `json:"questionId" validate:"uuidv4,required"`
+	TextAnwser string    `json:"textAnwser,omitempty" validate:"alphanum"`
+}
+
+func (s SurveyResponse) Validate() error {
+	v := validator.New(validator.WithRequiredStructEnabled())
+	return v.Struct(s)
+}
+
+type SurveyResponses []SurveyResponse
+
+func (s SurveyResponses) Validate() []error {
+	errs := make([]error, 0)
+	for _, res := range s {
+		if err := res.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errs
 }
 
 type FileUploadDto struct {

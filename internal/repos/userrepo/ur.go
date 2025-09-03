@@ -52,6 +52,19 @@ func (u UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, e
 	return &usr, nil
 }
 
+func (u UserRepo) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
+	var usr domain.User
+	err := u.repo.BnDB().NewSelect().Model(&usr).Where("? = ?", bun.Ident("username"), username).Scan(ctx)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, repos.ErrNoRecords
+		}
+		return nil, errors.Join(repos.ErrDBRead, err)
+	}
+	return &usr, nil
+}
+
 func (u UserRepo) GetAll(ctx context.Context) ([]*domain.User, error) {
 	usrs, err := u.repo.GetAll(ctx)
 	if err != nil {
@@ -140,19 +153,55 @@ func (u UserRepo) DeleteByEmail(ctx context.Context, email string) error {
 	return nil
 }
 
-func (u UserRepo) GetQuePosition(ctx context.Context, email string) (int64, error) {
+func (u UserRepo) DeleteByUsername(ctx context.Context, usrname string) error {
+	var usr domain.User
+	tx, err := u.repo.BnDB().BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return errors.Join(repos.ErrFailedTransaction, err)
+	}
+
+	if _, err := tx.NewDelete().Model(&usr).Where("? = ?", bun.Ident("username"), usrname).Exec(ctx); err != nil {
+		return errors.Join(repos.ErrDBDelete, err)
+	}
+	return nil
+}
+
+func (u UserRepo) GetQuePosition(ctx context.Context, usrname string) (int64, error) {
 	var usr domain.User
 	tx, err := u.repo.BnDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return -1, errors.Join(repos.ErrFailedTransaction, err)
 	}
 
-	err = tx.NewSelect().Model(&usr).Where("? = ?", bun.Ident("email"), email).Scan(ctx, &usr)
+	err = tx.NewSelect().Model(&usr).Where("? = ?", bun.Ident("username"), usrname).Scan(ctx, &usr)
 	if err != nil {
 		return -1, errors.Join(repos.ErrDBRead, err)
 	}
 
 	return usr.QuePosition, nil
+}
+
+func (u UserRepo) GetByRefererID(ctx context.Context, refID string) (domain.User, error) {
+	var usr domain.User
+	err := u.repo.BnDB().NewSelect().Model(&usr).Where("? = ?", bun.Ident("referer_id"), refID).Scan(ctx, &usr)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return domain.User{}, fmt.Errorf("could not find user %v", refID)
+		}
+		return domain.User{}, err
+	}
+
+	return usr, nil
+}
+
+func (u UserRepo) GetReferer(ctx context.Context, usrname, refID string) (domain.User, error) {
+	var usr domain.User
+	err := u.repo.BnDB().NewSelect().Model(&usr).Where("? = ?", bun.Ident("referer_id"), refID).Where("? = ?", bun.Ident("username"), usrname).Scan(ctx, &usr)
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	return usr, nil
 }
 
 func (u UserRepo) FetchByUsername(ctx context.Context, usrname string) (domain.User, error) {

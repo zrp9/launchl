@@ -15,7 +15,7 @@ import (
 
 func main() {
 	fmt.Println("running on 8090")
-	services := []string{"user"}
+	services := []string{"launch"}
 	cfg, err := config.Load()
 	if err != nil {
 		log.Println("failed to load database config exiting...")

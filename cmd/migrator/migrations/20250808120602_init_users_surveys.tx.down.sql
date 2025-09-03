@@ -1,3 +1,6 @@
+drop table referals;
+drop table survey_responses;
+drop table survey_question_options;
 drop table user_surveys;
 drop table survey_questions;
 drop table surveys;

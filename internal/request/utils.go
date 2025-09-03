@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -79,15 +80,30 @@ func SetJSONHeader(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
-func WriteJSON(w http.ResponseWriter, status int, msg any) error {
-	w.Header().Set("Content-Type", "application/json")
+func WriteResponse(w http.ResponseWriter, status int) {
+	w.WriteHeader(status)
+}
 
+func WriteJSON(w http.ResponseWriter, status int, msg any) error {
+	SetJSONHeader(w)
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(msg)
 }
 
 func WriteErr(w http.ResponseWriter, status int, err error) {
 	err = WriteJSON(w, status, map[string]string{"error": err.Error()})
+	if err != nil {
+		http.Error(w, err.Error(), status)
+	}
+}
+
+func WriteManyErrors(w http.ResponseWriter, status int, errs []error) {
+	e := make([]string, 0, len(errs))
+	for _, err := range errs {
+		e = append(e, err.Error())
+	}
+
+	err := WriteJSON(w, status, map[string]string{"errors": strings.Join(e, ",")})
 	if err != nil {
 		http.Error(w, err.Error(), status)
 	}
@@ -217,6 +233,23 @@ func ParseEmail(r *http.Request) (string, error) {
 		return "", errors.New("email is required")
 	}
 	return email, nil
+}
+
+func ParseUsername(r *http.Request) (string, error) {
+	usrname := r.PathValue("username")
+	if usrname == "" {
+		return "", errors.New("username is required")
+	}
+
+	return usrname, nil
+}
+
+func ParseURLID(r *http.Request) (string, error) {
+	id := r.PathValue("urlId")
+	if id == "" {
+		return "", errors.New("url identifier is required")
+	}
+	return id, nil
 }
 
 func ParsePagenation(r *http.Request) (Pager, error) {

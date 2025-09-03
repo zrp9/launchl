@@ -15,6 +15,7 @@ type User struct {
 
 	ID          uuid.UUID `bun:"pk,type:uuid,notnull,unique" json:"uid" validate:"uuid4"`
 	Email       string    `bun:"type:varchar(150),notnull,unique" json:"email" validate:"asci"`
+	Username    string    `bun:"type:varchar(150),notnull,nullzero" json:"username" validate:"ascii"`
 	Phone       string    `bun:"type:varchar(12),notnull" json:"phone" validate:"numeric"`
 	FirstName   string    `bun:"type:varchar(100),notnull" json:"firstName" validate:"alpha,min=1,max=150"`
 	LastName    string    `bun:"type:varchar(100),notnull" json:"lastName" validate:"alpha,min=1,max=150"`
@@ -24,9 +25,11 @@ type User struct {
 	Comments    string    `bun:"type:text,null,nullzero" json:"comments" validate:"alphanum"`
 	CompanyName string    `bun:"type:varchar(150),null,nullzero" json:"companyName" validate:"alphanum"`
 	QuePosition int64     `bun:"type:integer,null,nullzero" json:"quePosition" validate:"number,min=1,"`
-	Surveys     []Survey  `bun:"m2m:user_survey,join:User=Survey" json:"surveys"`
-	CreatedAt   time.Time `bun:"type:timestamptz,notnull,nullzero,default=current_timestamp" json:"createdAt"`
-	UpdatedAt   time.Time `bun:"type:timestamptz,notnull,nullzero,default=current_timestamp" json:"updatedAt"`
+	// TODO: this survey ref needs to be updated because user_survey table removed
+	Surveys   []Survey  `bun:"m2m:user_survey,join:User=Survey" json:"surveys"`
+	ReferalID string    `bun:"type:varchar(255),null,nullzero" json:"referalId"`
+	CreatedAt time.Time `bun:"type:timestamptz,notnull,nullzero,default=current_timestamp" json:"createdAt"`
+	UpdatedAt time.Time `bun:"type:timestamptz,notnull,nullzero,default=current_timestamp" json:"updatedAt"`
 }
 
 func NewUser(uid, email, phne, company, fname, lname string, role Role, would bool) (*User, error) {

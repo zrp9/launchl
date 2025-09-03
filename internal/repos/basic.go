@@ -41,8 +41,8 @@ type Saver interface {
 
 type Repoer[T identifier, M any] interface {
 	Get(ctx context.Context, key T) (*M, error)
-	List(ctx context.Context) ([]*M, error)
-	Save(ctx context.Context, o M) (*M, error)
+	GetAll(ctx context.Context) ([]*M, error)
+	Create(ctx context.Context, o M) (*M, error)
 	Update(ctx context.Context, key T) error
 	Delete(ctx context.Context, o M) error
 }

@@ -1,4 +1,4 @@
-// Package domain is for app models
+// Package domain is address entitiy
 package domain
 
 import (

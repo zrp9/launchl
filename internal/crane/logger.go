@@ -119,8 +119,8 @@ func (z Zlogrus) MustWarn(msg string) {
 	z.logger.Warn(msg)
 }
 
-func (z Zlogrus) MustError(msg string) {
-	z.logger.Error(msg)
+func (z Zlogrus) MustError(e error) {
+	z.logger.Error(e)
 }
 
 func (z Zlogrus) MustFatal(msg string) {

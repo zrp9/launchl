@@ -66,7 +66,8 @@ func (b *StoreBuilder) RegisterModels() *StoreBuilder {
 		panic("Register models needs db")
 	}
 
-	b.bdb.RegisterModel((*domain.UserSurvey)(nil))
+	// TODO: need to check if this is many 2 many
+	b.bdb.RegisterModel((*domain.SurveyResponse)(nil))
 	return b
 }
 
