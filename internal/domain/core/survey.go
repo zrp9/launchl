@@ -1,5 +1,5 @@
-// Package domain survey contains survey domain
-package domain
+// Package core survey contains survey domain
+package core
 
 import (
 	"database/sql/driver"

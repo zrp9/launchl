@@ -1,21 +1,27 @@
 package main
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/zrp9/launchl/internal/api"
+	"github.com/zrp9/launchl/internal/adapter/log/crane"
 	"github.com/zrp9/launchl/internal/app"
 	"github.com/zrp9/launchl/internal/config"
-	"github.com/zrp9/launchl/internal/crane"
 	"github.com/zrp9/launchl/internal/database/store"
 )
 
 func main() {
 	fmt.Println("running on 8090")
-	services := []string{"launch"}
+	stop := make(chan os.Signal, 1)
+	// handle termination singals
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	services := []string{"user", "survey", "app"}
 	cfg, err := config.Load()
 	if err != nil {
 		log.Println("failed to load database config exiting...")
@@ -26,28 +32,34 @@ func main() {
 	if err != nil {
 		log.Printf("an erro occurred while connecting to db %v", err)
 	}
-	if err := run(cfg.Server, conn, services); err != nil {
-		log.Printf("an error occurred while running server %v", err)
-	}
-}
 
-func run(serverCfg config.ServerCfg, con *sql.DB, services []string) error {
 	logger := crane.DefaultLogger
-	dbStore := store.NewBuilder().SetDB(con).SetBunDB().RegisterModels().Build()
-	// userRepo := urepo.New(dbStore)
-	// usrService := usr.New(userRepo)
-	// userApi := usr.Initialize(usrService, logger)
-
+	dbStore := store.NewBuilder().SetDB(conn).SetBunDB().RegisterModels().Build()
 	container := app.New(dbStore, logger)
-	if err := container.RegisterServices(services); err != nil {
+	// TODO this might have to be updated
+	ctx := context.TODO()
+	if err := container.RegisterServices(ctx, services); err != nil {
 		logger.MustDebugErr(err)
-		return err
 	}
-	server := api.NewServer(serverCfg, container.Endpoints())
+	server := app.NewServer(cfg.Server, container.Handlers())
 
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		logger.MustDebugErr(err)
-		return err
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.MustFatal(err.Error())
+		}
+	}()
+
+	// wait for go routine running server to stop
+	<-stop
+	log.Println("shutting down gracefully...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// attempt graceful shutdown
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("force shutdown %v", err)
+		logger.MustFatal(err.Error())
 	}
-	return nil
+
+	log.Print("server stopped gracefully")
 }

@@ -1,5 +1,5 @@
-// Package role entity
-package domain
+// Package core role entity
+package core
 
 import (
 	"time"

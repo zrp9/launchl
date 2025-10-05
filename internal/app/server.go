@@ -1,5 +1,4 @@
-// Package api has server config, common middleware and base route definitions
-package api
+package app
 
 import (
 	"context"
@@ -11,17 +10,17 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/zrp9/launchl/internal/adapter/api/rest"
 	"github.com/zrp9/launchl/internal/auth"
 	"github.com/zrp9/launchl/internal/config"
 	"github.com/zrp9/launchl/internal/crane"
 	"github.com/zrp9/launchl/internal/middleware"
 	"github.com/zrp9/launchl/internal/request"
-	"github.com/zrp9/launchl/internal/services"
 )
 
-func NewServer(cfg config.ServerCfg, apis []services.Service) *http.Server {
+func NewServer(cfg config.ServerCfg, apis []rest.Handler) *http.Server {
 	mux := http.NewServeMux()
-	mwChain := middleware.MiddlewareChain(handlePanic, loggerMiddleware, AddJsonHeader, headerMiddleware, contextMiddleware)
+	mwChain := middleware.MiddlewareChain(handlePanic, loggerMiddleware, AddJSONHeader, headerMiddleware, contextMiddleware)
 	registerRoutes(mux, apis)
 	server := &http.Server{
 		Addr:         cfg.Host,
@@ -32,7 +31,7 @@ func NewServer(cfg config.ServerCfg, apis []services.Service) *http.Server {
 	return server
 }
 
-func registerRoutes(mux *http.ServeMux, apis []services.Service) {
+func registerRoutes(mux *http.ServeMux, apis []rest.Handler) {
 	for _, api := range apis {
 		api.RegisterRoutes(mux)
 	}
@@ -67,7 +66,7 @@ func Authenticate(next http.Handler) http.HandlerFunc {
 	})
 }
 
-func AddJsonHeader(next http.Handler) http.HandlerFunc {
+func AddJSONHeader(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		request.SetJSONHeader(w)
 		next.ServeHTTP(w, r)

@@ -75,3 +75,12 @@ type SignupDto struct {
 	FirstName string `json:"firstName" validate:"required,alpha,min=1,max=100"`
 	LastName  string `json:"lastName" validate:"required,alpha,min=1,max=100"`
 }
+
+type EmailDTO struct {
+	To              []string       `json:"to"`
+	From            string         `json:"from"`
+	Data            map[string]any `json:"data,omitempty"`
+	Template        string         `json:"template"`
+	TemplateVersion string         `json:"templateVersion,omitempty"`
+	Subject         string         `json:"subject,omitempty"`
+}

@@ -33,6 +33,25 @@ func (c RoleRepo) New(ctx context.Context, name string) (domain.Role, error) {
 	return *role, nil
 }
 
+func (c RoleRepo) BulkCreate(ctx context.Context, roles []domain.Role) (err error) {
+	tx, err := c.repo.BnDB().BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if e := tx.Rollback(); e != nil {
+			err = e
+		}
+	}()
+
+	if _, err := tx.NewInsert().Model(&roles).Exec(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c RoleRepo) Get(ctx context.Context, name string) (domain.Role, error) {
 	var role domain.Role
 	err := c.repo.BnDB().NewSelect().Model(&role).Where("? = ?", bun.Ident("name"), name).Scan(ctx, &role)

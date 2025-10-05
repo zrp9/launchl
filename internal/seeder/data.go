@@ -1,7 +1,11 @@
 // Package seeder initial data for db
 package seeder
 
-import "github.com/google/uuid"
+import (
+	"strings"
+
+	"github.com/google/uuid"
+)
 
 type AppFeature struct {
 	ID               uuid.UUID
@@ -17,6 +21,58 @@ type AppRoles struct {
 	ID          uuid.UUID
 	Name        string
 	Permissions string
+}
+
+type Permission uint8
+
+const (
+	Read       Permission = 1 << iota // 0001 binary
+	Write                             // 0010
+	Execute                           // 0100
+	Admin                             // 1000
+	SuperAdmin                        // 0011
+)
+
+func GetPermission(p Permission) string {
+	permissions := make([]string, 0)
+	if p&Read != 0 {
+		permissions = append(permissions, "read")
+	}
+
+	if p&Write != 0 {
+		permissions = append(permissions, "write")
+	}
+
+	if p&Execute != 0 {
+		permissions = append(permissions, "execute")
+	}
+
+	if p&Admin != 0 {
+		permissions = append(permissions, "admin")
+	}
+
+	if p&SuperAdmin != 0 {
+		permissions = append(permissions, "super-admin")
+	}
+
+	return strings.Join(permissions, ",")
+}
+
+func RemovePermission(curPermissions Permission, perm Permission) Permission {
+	return curPermissions &^ perm
+}
+
+func AddPermission(curPermissions Permission, perm Permission) Permission {
+	return curPermissions | perm
+}
+
+func GrantPermissions(perms ...Permission) string {
+	var permissions Permission
+	for _, p := range perms {
+		permissions |= p
+	}
+
+	return GetPermission(permissions)
 }
 
 //  maybe make a lambda that can be called with strings to save to s3 for feature
@@ -100,6 +156,26 @@ func GetAppFeatures() []AppFeature {
 				"Access documents anytime from your <strong>dashboard or tenant portal</strong>.",
 			},
 			QuickDescription: "Store, share, and sign documents securely",
+		},
+	}
+}
+
+func GetAppRoles() []AppRoles {
+	return []AppRoles{
+		{
+			ID:          uuid.New(),
+			Name:        "subscriber",
+			Permissions: GrantPermissions(Read, Write),
+		},
+		{
+			ID:          uuid.New(),
+			Name:        "guest",
+			Permissions: GrantPermissions(Read),
+		},
+		{
+			ID:          uuid.New(),
+			Name:        "SuperAdmin",
+			Permissions: GrantPermissions(SuperAdmin),
 		},
 	}
 }

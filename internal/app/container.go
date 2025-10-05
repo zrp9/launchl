@@ -2,28 +2,33 @@
 package app
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/zrp9/launchl/internal/crane"
+	"github.com/zrp9/launchl/internal/adapter/api/rest"
+	"github.com/zrp9/launchl/internal/adapter/cache/valkaree"
+	"github.com/zrp9/launchl/internal/adapter/log/crane"
+	"github.com/zrp9/launchl/internal/adapter/repo/pgsql"
+	"github.com/zrp9/launchl/internal/config"
 	"github.com/zrp9/launchl/internal/database/store"
-	"github.com/zrp9/launchl/internal/repos/configrepo"
-	"github.com/zrp9/launchl/internal/repos/referalrepo"
-	"github.com/zrp9/launchl/internal/repos/surveyrepo"
-	"github.com/zrp9/launchl/internal/repos/userrepo"
-	"github.com/zrp9/launchl/internal/services"
-	"github.com/zrp9/launchl/internal/services/launch"
-	"github.com/zrp9/launchl/internal/services/valkaree"
+	"github.com/zrp9/launchl/internal/domain/service"
 )
 
 type Container struct {
-	store     store.Persister
-	logger    *crane.Zlogrus
-	endpoints []services.Service
+	store    store.Persister
+	logger   *crane.Zlogrus
+	services map[string]service.Servicer
+	handlers []rest.Handler
 }
 
-func (c Container) Endpoints() []services.Service {
-	return c.endpoints
+func (c Container) Endpoints() map[string]service.Servicer {
+	return c.services
+}
+
+func (c *Container) Handlers() []rest.Handler {
+	return c.handlers
 }
 
 func New(s store.Persister, l *crane.Zlogrus) *Container {
@@ -33,31 +38,85 @@ func New(s store.Persister, l *crane.Zlogrus) *Container {
 	}
 }
 
-func (c Container) RegisterServices(names []string) error {
+func (c *Container) RegisterServices(ctx context.Context, names []string) error {
+	vconf := config.LoadValkey()
+	valkeyClient, err := valkaree.NewClient(ctx, vconf)
+	if err != nil {
+		return err
+	}
+
+	cache := valkaree.NewCache(valkeyClient)
+	stream := valkaree.NewStream(valkeyClient, "email-notifications", 1000, *c.logger)
+
 	for _, name := range names {
-		service, err := c.createService(name)
+		service, err := c.createService(cache, *stream, name)
 		if err != nil {
 			return err
 		}
-		c.endpoints = append(c.endpoints, service)
+		c.services[service.Name()] = service
+	}
+
+	if err := c.createHandlers(); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (c Container) createService(name string) (services.Service, error) {
+func (c *Container) createHandlers() error {
 	v := validator.New(validator.WithRequiredStructEnabled())
-	configRepo := configrepo.NewRoleRepo(c.store)
+	for _, service := range c.services {
+		if err := c.handlerFactory(service, *v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c Container) handlerFactory(serv service.Servicer, v validator.Validate) error {
+	switch serv.Name() {
+	case "user":
+		usrService, ok := serv.(service.UserService)
+		if !ok {
+			return c.ServiceErr(serv.Name())
+		}
+		c.handlers = append(c.handlers, rest.NewUserHandler(usrService, v, *c.logger))
+		return nil
+	case "survey":
+		survService, ok := serv.(service.SurveyService)
+		if !ok {
+			return c.ServiceErr(serv.Name())
+		}
+		c.handlers = append(c.handlers, rest.NewSurveyHandler(survService, v, *c.logger))
+		return nil
+	case "app":
+		aService, ok := serv.(service.AppService)
+		if !ok {
+			return c.ServiceErr(serv.Name())
+		}
+		c.handlers = append(c.handlers, rest.NewAppHandler(aService, v, *c.logger))
+		return nil
+	default:
+		return errors.New("unsupported service name")
+	}
+}
+
+func (c Container) createService(cache valkaree.Cache, stream valkaree.Stream, name string) (service.Servicer, error) {
 	switch name {
-	case "launch":
-		userRepo := userrepo.New(c.store)
-		questionRepo := surveyrepo.NewResponseRepo(c.store)
-		refRepo := referalrepo.NewReferalRepo(c.store)
-		s := valkaree.Stream{}
-		sw := s.Writer()
-		launchService := launch.New(userRepo, questionRepo, refRepo, configRepo, sw, v)
-		return launch.Initialize(launchService, c.logger), nil
+	case "user":
+		userRepo := pgsql.NewUserRepo(c.store)
+		return service.NewUserService(userRepo, *c.logger, cache, stream), nil
+	case "survey":
+		surveyRepo := pgsql.NewSurveyRepo(c.store)
+		return service.NewSurveyService(surveyRepo, cache, *c.logger), nil
+	case "app":
+		appRepo := pgsql.NewAppRepo(c.store)
+		return service.NewAppService(appRepo, cache), nil
 	default:
 		return nil, fmt.Errorf("unknown service %v", name)
 	}
+}
+
+func (c Container) ServiceErr(service string) error {
+	return fmt.Errorf("%v is invalid service type for handler", service)
 }

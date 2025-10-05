@@ -31,9 +31,9 @@ var (
 
 type JSON map[string]any
 
-type Pager struct {
-	Page  int
-	Limit int
+type Page struct {
+	Number int `validate:"numeric,gte=1,lte=10"`
+	Limit  int `validate:"numeric,gte=1,lte=10"`
 }
 
 type AuthHeaderErr struct {
@@ -252,12 +252,12 @@ func ParseURLID(r *http.Request) (string, error) {
 	return id, nil
 }
 
-func ParsePagenation(r *http.Request) (Pager, error) {
+func ParsePagenation(r *http.Request) (Page, error) {
 	query := r.URL.Query()
 	page, err := strconv.Atoi(query.Get("page"))
 
 	if err != nil {
-		return Pager{}, fmt.Errorf("page was not included with request %v", err)
+		return Page{}, fmt.Errorf("page was not included with request %v", err)
 	}
 
 	lmt, err := strconv.Atoi(query.Get("limit"))
@@ -269,7 +269,7 @@ func ParsePagenation(r *http.Request) (Pager, error) {
 		lmt = DefaultRecordLimit
 	}
 
-	return Pager{Page: page, Limit: lmt}, nil
+	return Page{Number: page, Limit: lmt}, nil
 }
 
 func WriteBadResponse(w http.ResponseWriter, err error) {

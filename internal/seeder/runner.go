@@ -6,30 +6,26 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zrp9/launchl/internal/database/store"
-	"github.com/zrp9/launchl/internal/domain"
-	"github.com/zrp9/launchl/internal/repos/configrepo"
-	"github.com/zrp9/launchl/internal/services/feature"
+	"github.com/zrp9/launchl/internal/domain/core"
+	"github.com/zrp9/launchl/internal/domain/service"
 )
 
 type SeederAdapter struct {
-	roleService    configrepo.RoleRepo
-	featureService feature.FeatureService
+	service service.AppService
 }
 
-func SeederFactory(s store.Persister) SeederAdapter {
+func SeederFactory(s service.AppService) SeederAdapter {
 	return SeederAdapter{
-		roleService:    configrepo.NewRoleRepo(s),
-		featureService: feature.New(s),
+		service: s,
 	}
 }
 
 func (s SeederAdapter) seedFeatures() error {
 	log.Println("Starting feature seeder...")
 	features := GetAppFeatures()
-	feats := make([]domain.Feature, 0, len(features))
+	feats := make([]*core.Feature, 0, len(features))
 	for _, f := range features {
-		feats = append(feats, domain.Feature{
+		feats = append(feats, &core.Feature{
 			Title:            f.Title,
 			Name:             f.Name,
 			Details:          strings.Join(f.Details, ","),
@@ -38,7 +34,7 @@ func (s SeederAdapter) seedFeatures() error {
 			UpdatedAt:        time.Now(),
 		})
 	}
-	if err := s.featureService.BulkCreate(context.TODO(), feats); err != nil {
+	if err := s.service.CreateFeatures(context.TODO(), feats); err != nil {
 		return err
 	}
 
@@ -47,10 +43,25 @@ func (s SeederAdapter) seedFeatures() error {
 
 func (s SeederAdapter) seedRoles() error {
 	log.Println("Starting role seeder...")
+	roles := GetAppRoles()
+	appRoles := make([]*core.Role, 0, len(roles))
+	for _, role := range roles {
+		appRoles = append(appRoles, &core.Role{
+			ID:          role.ID,
+			Name:        role.Name,
+			Permissions: core.RolePermission(role.Permissions),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		})
+	}
+
+	if err := s.service.CreateRoles(context.TODO(), appRoles); err != nil {
+		return err
+	}
 	return nil
 }
 
-func (s SeederAdapter) LoadDB() error {
+func (s SeederAdapter) LoadDBData() error {
 	log.Println("Starting db seeding...")
 	if err := s.seedFeatures(); err != nil {
 		return err
