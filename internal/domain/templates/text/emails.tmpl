@@ -1,0 +1,22 @@
+
+{{ define "welcome.txt.tmpl" -}}
+Hi {{ .Name }},
+
+Welcome to {{ .AppName }}! We're glad you're here.
+
+Get started: {{ .StartURL }}
+
+— The {{ .AppName }} Team
+{{- end }}
+
+{{ define "reminder.txt.tmpl" -}}
+Hi {{ .Name }},
+
+Just a friendly reminder about your upcoming event:
+{{ .EventTitle }} on {{ .EventDate }}
+
+Manage your event: {{ .EventURL }}
+
+Thanks,
+{{ .AppName }} Team
+{{- end }}

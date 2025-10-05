@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/valkey-io/valkey-go"
 	"github.com/zrp9/launchl/internal/adapter/cache/valkaree"
 	"github.com/zrp9/launchl/internal/adapter/repo/pgsql"
 	"github.com/zrp9/launchl/internal/config"
@@ -25,17 +26,20 @@ func main() {
 	if err != nil {
 		log.Printf("an erro occurred while connecting to db %v", err)
 	}
-	if err := run(conn); err != nil {
+
+	ctx := context.TODO()
+	vclient, err := valkaree.NewClient(ctx, cfg.Valkey)
+	if err != nil {
+		log.Printf("an error occurred creating valkey client %v", err)
+	}
+	if err := run(conn, vclient); err != nil {
 		log.Printf("an error occurred while running server %v", err)
 	}
 }
 
-func run(con *sql.DB) error {
+func run(con *sql.DB, vclient valkey.Client) error {
 	dbStore := store.NewBuilder().SetDB(con).SetBunDB().RegisterModels().Build()
-	cache, err := valkaree.NewCache(context.TODO())
-	if err != nil {
-		return err
-	}
+	cache := valkaree.NewCache(vclient)
 	appRepo := pgsql.NewAppRepo(dbStore)
 	appService := service.NewAppService(appRepo, cache)
 	adapter := seeder.SeederFactory(appService)
