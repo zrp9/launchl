@@ -257,7 +257,7 @@ func ParsePagenation(r *http.Request) (Page, error) {
 	page, err := strconv.Atoi(query.Get("page"))
 
 	if err != nil {
-		return Page{}, fmt.Errorf("page was not included with request %v", err)
+		return Page{}, fmt.Errorf("param error page was not included with request %v", err)
 	}
 
 	lmt, err := strconv.Atoi(query.Get("limit"))

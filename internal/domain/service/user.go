@@ -30,7 +30,7 @@ type UserService struct {
 }
 
 func (u UserService) Name() string {
-	return "User"
+	return "user"
 }
 
 func NewUserService(repo pgsql.UserRepo, logger crane.Zlogrus, cache valkaree.Cache, stream valkaree.Stream) UserService {
@@ -92,14 +92,14 @@ func (u UserService) CreateUser(ctx context.Context, usr *core.User) (*core.User
 }
 
 func (u UserService) CheckQuePosition(ctx context.Context, email string) (int, error) {
-	val, err := u.cache.Get(ctx, email)
-	if err != nil {
+	cacheVal, err := u.cache.Get(ctx, email)
+	if err != nil && err != valkaree.ErrEmptyCache {
 		u.logger.MustTrace(fmt.Sprintf("a cache error occurred: %v", err))
 	}
 
-	if val != "" {
+	if cacheVal != "" {
 		var usr core.User
-		if err = json.Unmarshal([]byte(val), &usr); err != nil {
+		if err = json.Unmarshal([]byte(cacheVal), &usr); err != nil {
 			u.logger.MustTrace(fmt.Sprintf("failed to unmarshal cache value for user %v", err))
 		}
 
@@ -120,6 +120,10 @@ func (u UserService) CheckQuePosition(ctx context.Context, email string) (int, e
 
 func (u UserService) DeleteUser(ctx context.Context, email string) error {
 	if err := u.cache.Delete(ctx, email); err != nil {
+		u.logger.MustTrace(fmt.Sprintf("error could not delete user cache %v", err))
+	}
+
+	if err := u.cache.Delete(ctx, email); err != nil {
 		u.logger.MustTrace(fmt.Sprintf("error occurred trying to delete usr cache %v", err))
 	}
 	return u.repo.DeleteByEmail(ctx, email)
@@ -131,7 +135,7 @@ func (u UserService) SignupReferal(ctx context.Context, referee core.User, refer
 
 func (u UserService) GetRefLinkAndPosition(ctx context.Context, usrname string) (string, int, error) {
 	usrCached, err := u.cache.Get(ctx, usrname)
-	if err != nil {
+	if err != nil && err != valkaree.ErrEmptyCache {
 		return "", -1, err
 	}
 

@@ -21,13 +21,18 @@ import (
 var ErrEmptyCache = errors.New("no results found for given key")
 
 func NewClient(ctx context.Context, cfg config.ValkeyCfg) (valkey.Client, error) {
-	confi := config.LoadValkey()
+	log.Printf("valkey host %v, valkey port %v\n", cfg.Host, cfg.Port)
+	if cfg.Host == "" || cfg.Port == "" {
+		return nil, errors.New("valkey host and port must be defined")
+	}
+
+	log.Printf("valkey using %s:%s", cfg.Host, cfg.Port)
 	client, err := valkey.NewClient(valkey.ClientOption{
-		InitAddress: []string{fmt.Sprintf("%s:%s", confi.Host, confi.Port)},
+		InitAddress: []string{fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)},
 	})
 
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -77,7 +82,7 @@ func (v Cache) Get(ctx context.Context, key string) (string, error) {
 		if err == valkey.Nil {
 			return "", ErrEmptyCache
 		}
-		return "", nil
+		return "", err
 	}
 
 	return val, nil

@@ -29,17 +29,17 @@ func NewSurveyService(r pgsql.SurveyRepo, c valkaree.Cache, l crane.Zlogrus) Sur
 }
 
 func (s SurveyService) Name() string {
-	return "Survey"
+	return "survey"
 }
 
 func (s SurveyService) GetSurvey(ctx context.Context) (*core.Survey, error) {
-	surv, err := s.cache.Get(ctx, surveyKey)
-	if err != nil {
+	sCache, err := s.cache.Get(ctx, surveyKey)
+	if err != nil && err != valkaree.ErrEmptyCache {
 		s.logger.MustTraceErr(err)
 	}
 
 	var survey *core.Survey
-	err = json.Unmarshal([]byte(surv), &survey)
+	err = json.Unmarshal([]byte(sCache), &survey)
 	if err != nil {
 		s.logger.MustTraceErr(err)
 	}

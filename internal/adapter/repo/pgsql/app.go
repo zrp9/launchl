@@ -3,6 +3,8 @@ package pgsql
 
 import (
 	"context"
+	"errors"
+	"log"
 
 	"github.com/uptrace/bun"
 	"github.com/zrp9/launchl/internal/domain/core"
@@ -25,14 +27,11 @@ func (f AppRepo) BulkCreateFeatures(ctx context.Context, feats []*core.Feature) 
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if e := tx.Rollback(); e != nil {
-			err = e
-		}
-	}()
 
-	_, err = tx.NewInsert().Model(feats).Exec(ctx, &features)
-	if err != nil {
+	if _, err = tx.NewInsert().Model(&feats).Exec(ctx, &features); err != nil {
+		if e := tx.Rollback(); e != nil {
+			return nil, errors.Join(err, e)
+		}
 		return nil, err
 	}
 
@@ -82,13 +81,14 @@ func (f AppRepo) BulkCreateRoles(ctx context.Context, roles []*core.Role) (err e
 		return err
 	}
 
-	defer func() {
+	if _, err := tx.NewInsert().Model(&roles).Exec(ctx); err != nil {
 		if e := tx.Rollback(); e != nil {
-			err = e
+			return errors.Join(err, e)
 		}
-	}()
+		return err
+	}
 
-	if _, err := tx.NewInsert().Model(roles).Exec(ctx); err != nil {
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 
@@ -111,6 +111,7 @@ func (f AppRepo) GetAllRoles(ctx context.Context) ([]core.Role, error) {
 	if err := f.repo.BnDB().NewSelect().Model(&roles).Scan(ctx, &roles); err != nil {
 		return nil, err
 	}
+	log.Printf("roles %v", roles)
 
 	return roles, nil
 }

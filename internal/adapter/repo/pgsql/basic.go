@@ -9,7 +9,6 @@ import (
 	"log"
 
 	"github.com/uptrace/bun"
-	"github.com/zrp9/launchl/internal/database/store"
 )
 
 // when using have to do something like this
@@ -47,10 +46,10 @@ type Repoer[T identifier, M any] interface {
 }
 
 type BasicRepo[T identifier, M any] struct {
-	store.Persister
+	PGClient
 }
 
-func NewBasicRepo[T identifier, M any](store store.Persister) *BasicRepo[T, M] {
+func NewBasicRepo[T identifier, M any](store PGClient) *BasicRepo[T, M] {
 	return &BasicRepo[T, M]{
 		store,
 	}

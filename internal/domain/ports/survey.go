@@ -3,7 +3,6 @@ package ports
 import (
 	"context"
 
-	"github.com/zrp9/launchl/internal/domain"
 	"github.com/zrp9/launchl/internal/domain/core"
 )
 
@@ -26,8 +25,8 @@ type ISurveyRepo interface {
 }
 
 type ISurveyService interface {
-	GetSurvey(ctx context.Context) (*domain.Survey, error)
-	CreateSurveyResponse(ctx context.Context, respones domain.SurveyResponse) error
+	GetSurvey(ctx context.Context) (*core.Survey, error)
+	CreateSurveyResponse(ctx context.Context, respones core.SurveyResponse) error
 }
 
 type IAdminSurveyService interface {

@@ -162,3 +162,7 @@ db-unlock:
 .PHONY: db-fakemark
 db-fakemark:
 	go run ./cmd/migrator/main.go db fake_mark
+
+.PHONY: db-seeder
+db-seeder:
+	go run ./cmd/seeder/main.go

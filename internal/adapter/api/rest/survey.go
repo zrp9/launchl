@@ -4,6 +4,7 @@ package rest
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -41,6 +42,7 @@ func (s SurveyHandler) HandleLogging(hn APIHandler) http.HandlerFunc {
 }
 
 func (s SurveyHandler) RegisterRoutes(m *http.ServeMux) {
+	log.Printf("MUX in survey hndler register:  %p", m)
 	m.HandleFunc("GET /api/v1/survey", s.HandleLogging(s.HandleGetSurvey))
 	m.HandleFunc("POST /api/v1/survey/{username}", s.HandleLogging(s.HandleSurveyResponse))
 }

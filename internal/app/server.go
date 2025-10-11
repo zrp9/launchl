@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,19 +13,22 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/zrp9/launchl/internal/adapter/api/rest"
+	"github.com/zrp9/launchl/internal/adapter/log/crane"
 	"github.com/zrp9/launchl/internal/auth"
 	"github.com/zrp9/launchl/internal/config"
-	"github.com/zrp9/launchl/internal/crane"
 	"github.com/zrp9/launchl/internal/middleware"
 	"github.com/zrp9/launchl/internal/request"
 )
 
-func NewServer(cfg config.ServerCfg, apis []rest.Handler) *http.Server {
-	mux := http.NewServeMux()
-	mwChain := middleware.MiddlewareChain(handlePanic, loggerMiddleware, AddJSONHeader, headerMiddleware, contextMiddleware)
+func NewServer(cfg config.ServerCfg, mux *http.ServeMux, apis []rest.Handler) *http.Server {
+	log.Printf("MUX in server register: %p, apis=%d", mux, len(apis))
 	registerRoutes(mux, apis)
+	mwChain := middleware.MiddlewareChain(handlePanic, loggerMiddleware, AddJSONHeader, headerMiddleware, contextMiddleware)
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		_ = request.WriteJSON(w, http.StatusOK, "OK")
+	})
 	server := &http.Server{
-		Addr:         cfg.Host,
+		Addr:         net.JoinHostPort("", cfg.Port),
 		ReadTimeout:  time.Second * time.Duration(cfg.ReadTimeout),
 		WriteTimeout: time.Second * time.Duration(cfg.WriteTimeout),
 		Handler:      mwChain(mux),

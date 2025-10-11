@@ -1,0 +1,31 @@
+FROM golang:1.24 as BUILDER
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o app .
+
+# final stages
+# FROM alpine:3.18
+# or use googles distroless for better security
+FROM gcr.io/distroless/static-debainll
+
+# not sure if i need to remove this apk or groups/users if use google
+RUN apk --no-cache add ca-certificates
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+COPY --from=BUILDER /app/app .
+
+USER appuser
+
+EXPOSE 8090
+
+CMD ["./app"]

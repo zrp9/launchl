@@ -5,9 +5,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -15,7 +17,7 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
 	"github.com/zrp9/launchl/internal/config"
-	"github.com/zrp9/launchl/internal/domain"
+	"github.com/zrp9/launchl/internal/domain/core"
 )
 
 type PGClient interface {
@@ -67,7 +69,7 @@ func (b *StoreBuilder) RegisterModels() *StoreBuilder {
 	}
 
 	// TODO: need to check if this is many 2 many
-	b.bdb.RegisterModel((*domain.SurveyResponse)(nil))
+	b.bdb.RegisterModel((*core.SurveyResponse)(nil))
 	return b
 }
 
@@ -96,6 +98,34 @@ func Con() *sql.DB {
 
 func (s PGStore) TestConnection() error {
 	return s.db.Ping()
+}
+
+func DBConWithRetry(cfg config.DatabaseCfg) (*sql.DB, error) {
+	backoff := []time.Duration{500 * time.Millisecond, 1 * time.Second, 2 * time.Second, 3 * time.Second, 5 * time.Second}
+	var db *sql.DB
+	var err error
+
+	for _, d := range backoff {
+		db, err = DBCon(cfg)
+		if err == nil {
+			return db, nil
+		}
+		// unwrap for pgdriver error code checks
+		var pgErr *pgdriver.Error
+		if errors.As(err, &pgErr) && (pgErr.Field('C') == "57P03") { // in recovery
+			time.Sleep(d)
+			continue
+		}
+
+		// also retry common startup errors
+		if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "i/o timeout") {
+			time.Sleep(d)
+			continue
+		}
+		// any other error: fail fast
+		return nil, err
+	}
+	return nil, err
 }
 
 func DBCon(dbConf config.DatabaseCfg) (*sql.DB, error) {

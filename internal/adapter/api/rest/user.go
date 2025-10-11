@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"log"
 	"net/http"
 
 	v "github.com/go-playground/validator/v10"
@@ -37,11 +38,12 @@ func (u UserHandler) Name() string {
 func (u UserHandler) RegisterRoutes(m *http.ServeMux) {
 	// this is how i could have the main registerRoutes func call pass in prefixes
 	//m.HandleFunc(fmt.Sprintf("GET /%v", prefix), u.HandleFetchUsers)
+	log.Printf("MUX in user hndler register:  %p", m)
 	m.HandleFunc("POST /api/v1/user/subscribe", u.HandleLogging(u.HandleSubscribe))
 	// get users number in queue
 	m.HandleFunc("GET /api/v1/user/{username}/position", u.HandleLogging(u.HandleCheckQueue))
 	m.HandleFunc("POST /api/v1/user/referred/{urlId}", u.HandleLogging(u.HandleSubscribeRefered))
-	m.HandleFunc("GET /api/v1/user/rlink/{username}", u.HandleLogging(u.HandleGetReferLink))
+	m.HandleFunc("GET /api/v1/user/{username}/rlink", u.HandleLogging(u.HandleGetReferLink))
 }
 
 func (u UserHandler) HandleLogging(hn APIHandler) http.HandlerFunc {
@@ -49,6 +51,8 @@ func (u UserHandler) HandleLogging(hn APIHandler) http.HandlerFunc {
 		if err := hn(w, r); err != nil {
 			if e, ok := err.(APIErr); ok {
 				request.WriteErr(w, e.Status, e)
+			} else {
+				request.WriteErr(w, http.StatusInternalServerError, err)
 			}
 			u.logger.MustError(err)
 		}

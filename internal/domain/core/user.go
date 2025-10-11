@@ -14,7 +14,7 @@ import (
 type User struct {
 	bun.BaseModel `bun:"table:users,alias:u"`
 
-	ID          uuid.UUID `bun:"pk,type:uuid,notnull,unique" json:"uid" validate:"uuid4"`
+	ID          uuid.UUID `bun:"id,pk,type:uuid,notnull,unique" json:"uid" validate:"uuid4"`
 	Email       string    `bun:"type:varchar(150),notnull,unique" json:"email" validate:"asci"`
 	Username    string    `bun:"type:varchar(150),notnull,nullzero" json:"username" validate:"ascii"`
 	Phone       string    `bun:"type:varchar(12),notnull" json:"phone" validate:"numeric"`
@@ -22,15 +22,17 @@ type User struct {
 	LastName    string    `bun:"type:varchar(100),notnull" json:"lastName" validate:"alpha,min=1,max=150"`
 	RoleID      uuid.UUID `bun:"type:uuid,notnull" json:"roleId" validate:"uuid4"`
 	Role        *Role     `bun:"rel:belongs-to,join:role_id=id" json:"role"`
-	WouldUse    bool      `bun:"type:boolean,notnull,nullzero,default=false" json:"wouldUse" validate:"boolean"`
-	Comments    string    `bun:"type:text,null,nullzero" json:"comments" validate:"alphanum"`
-	CompanyName string    `bun:"type:varchar(150),null,nullzero" json:"companyName" validate:"alphanum"`
-	QuePosition int64     `bun:"type:integer,null,nullzero" json:"quePosition" validate:"number,min=1,"`
+	WouldUse    bool      `bun:"type:boolean,notnull,nullzero,default:false" json:"wouldUse" validate:"boolean"`
+	Comments    string    `bun:"type:text,nullzero" json:"comments" validate:"alphanum"`
+	CompanyName string    `bun:"type:varchar(150),notnull,nullzero" json:"companyName" validate:"alphanum"`
+	QuePosition int64     `bun:"type:integer,notnull,nullzero" json:"quePosition" validate:"number,min=1,"`
 	// TODO: this survey ref needs to be updated because user_survey table removed
-	Surveys   []Survey  `bun:"m2m:user_survey,join:User=Survey" json:"surveys"`
-	ReferalID string    `bun:"type:varchar(255),null,nullzero" json:"referalId"`
-	CreatedAt time.Time `bun:"type:timestamptz,notnull,nullzero,default=current_timestamp" json:"createdAt"`
-	UpdatedAt time.Time `bun:"type:timestamptz,notnull,nullzero,default=current_timestamp" json:"updatedAt"`
+	Surveys    []Survey  `bun:"m2m:user_survey,join:User=Survey" json:"surveys"`
+	Referals   []Referal `bun:"rel:has-many,join:id=referer_id" json:"referals"`
+	ReferedBys []Referal `bun:"rel:has-many,join:id=referee_id" json:"referedBys"`
+	ReferalURL string    `bun:"type:varchar(255),notnull,nullzero" json:"referalURL"`
+	CreatedAt  time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"createdAt"`
+	UpdatedAt  time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"updatedAt"`
 }
 
 func NewUser(uid, email, phne, company, fname, lname string, role Role, would bool) (*User, error) {
@@ -55,7 +57,7 @@ func (u User) Position() int {
 }
 
 func (u User) RefLink() string {
-	return fmt.Sprintf("https://www.estatehub.z3.com/refer/%v", u.ReferalID)
+	return fmt.Sprintf("https://www.estatehub.z3.com/refer/%v", u.ReferalURL)
 }
 
 func (u *User) Validate() error {

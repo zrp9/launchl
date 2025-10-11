@@ -176,7 +176,7 @@ func LoadValkey() ValkeyCfg {
 	_ = initializeEnv()
 	return ValkeyCfg{
 		Host: mustGetEnv("VALKEY_HOST"),
-		Port: mustGetEnv("VALKEY_HOST"),
+		Port: mustGetEnv("VALKEY_PORT"),
 	}
 }
 
@@ -204,6 +204,7 @@ func initializeEnv() string {
 	if err := godotenv.Load(".env"); err != nil {
 		log.Printf("warning could not load .env file %v", err)
 	}
+	log.Print("default env loaded")
 
 	return appEnv
 }

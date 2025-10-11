@@ -2,21 +2,27 @@ version: "3.8"
 services:
   app:
     container_name: launchl-container
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_started
     build:
       context: .
       dockerfile: Dockerfile.dev
     env_file:
       - .env
     ports:
-      - "8080:8080"
+      - "8090:8090"
       - "2345:2345" # debug
+      - "8087:8087" # air
     volumes:
       - ./:/app:cached
     networks:
      - launchl-network
 
-  valkeree:
-    container_name: launcl-valkee
+  valkey:
+    container_name: launcl-valkey
     image: valkey/valkey:7-alpine
     ports:
       - "6379:6379"
@@ -41,7 +47,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      - "5434:5434"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d

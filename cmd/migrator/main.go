@@ -11,8 +11,8 @@ import (
 	"github.com/uptrace/bun/migrate"
 	"github.com/urfave/cli/v2"
 	"github.com/zrp9/launchl/cmd/migrator/migrations"
+	"github.com/zrp9/launchl/internal/adapter/repo/pgsql"
 	"github.com/zrp9/launchl/internal/config"
-	"github.com/zrp9/launchl/internal/database/store"
 )
 
 func init() {
@@ -27,15 +27,15 @@ func main() {
 		log.Fatalf("failed to load config %v", err)
 	}
 
-	dbcon, err := store.DBCon(cfg.Database)
+	dbcon, err := pgsql.DBCon(cfg.Database)
 	if err != nil {
 		log.Fatalf("could not connect to database")
 		return
 	}
 
-	dbStore := store.NewBuilder().SetDB(dbcon).SetBunDB().Build()
+	dbStore := pgsql.NewBuilder().SetDB(dbcon).SetBunDB().Build()
 	dbStore.BnDB().AddQueryHook(bundebug.NewQueryHook(
-		bundebug.WithEnabled(false),
+		bundebug.WithEnabled(true),
 		bundebug.FromEnv(),
 	))
 

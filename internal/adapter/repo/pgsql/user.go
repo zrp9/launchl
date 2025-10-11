@@ -105,7 +105,7 @@ func (u UserRepo) UpdateByReferer(ctx context.Context, referee core.User, refere
 		}
 
 		var refereer core.User
-		if err := tx.NewSelect().Model(&core.User{}).Where("? = ?", bun.Ident("referer_id"), refererID).Scan(ctx, &refereer); err != nil {
+		if err := tx.NewSelect().Model(&core.User{}).Where("? = ?", bun.Ident("referal_url"), refererID).Scan(ctx, &refereer); err != nil {
 			return err
 		}
 

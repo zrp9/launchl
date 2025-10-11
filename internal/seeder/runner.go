@@ -26,6 +26,7 @@ func (s SeederAdapter) seedFeatures() error {
 	feats := make([]*core.Feature, 0, len(features))
 	for _, f := range features {
 		feats = append(feats, &core.Feature{
+			ID:               f.ID,
 			Title:            f.Title,
 			Name:             f.Name,
 			Details:          strings.Join(f.Details, ","),
@@ -62,10 +63,10 @@ func (s SeederAdapter) seedRoles() error {
 }
 
 func (s SeederAdapter) LoadDBData() error {
-	log.Println("Starting db seeding...")
-	if err := s.seedFeatures(); err != nil {
-		return err
-	}
+	// log.Println("Starting db seeding...")
+	// if err := s.seedFeatures(); err != nil {
+	// 	return err
+	// }
 
 	if err := s.seedRoles(); err != nil {
 		return err

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/zrp9/launchl/internal/adapter/api/rest"
@@ -12,12 +13,11 @@ import (
 	"github.com/zrp9/launchl/internal/adapter/log/crane"
 	"github.com/zrp9/launchl/internal/adapter/repo/pgsql"
 	"github.com/zrp9/launchl/internal/config"
-	"github.com/zrp9/launchl/internal/database/store"
 	"github.com/zrp9/launchl/internal/domain/service"
 )
 
 type Container struct {
-	store    store.Persister
+	store    pgsql.PGClient
 	logger   *crane.Zlogrus
 	services map[string]service.Servicer
 	handlers []rest.Handler
@@ -31,10 +31,12 @@ func (c *Container) Handlers() []rest.Handler {
 	return c.handlers
 }
 
-func New(s store.Persister, l *crane.Zlogrus) *Container {
+func New(s pgsql.PGClient, l *crane.Zlogrus) *Container {
 	return &Container{
-		store:  s,
-		logger: l,
+		store:    s,
+		logger:   l,
+		services: make(map[string]service.Servicer, 0),
+		handlers: make([]rest.Handler, 0),
 	}
 }
 
@@ -56,6 +58,8 @@ func (c *Container) RegisterServices(ctx context.Context, names []string) error 
 		c.services[service.Name()] = service
 	}
 
+	log.Printf("services in container %v\n", len(c.services))
+
 	if err := c.createHandlers(); err != nil {
 		return err
 	}
@@ -70,10 +74,11 @@ func (c *Container) createHandlers() error {
 			return err
 		}
 	}
+	log.Printf("handlers in container %v\n", len(c.handlers))
 	return nil
 }
 
-func (c Container) handlerFactory(serv service.Servicer, v validator.Validate) error {
+func (c *Container) handlerFactory(serv service.Servicer, v validator.Validate) error {
 	switch serv.Name() {
 	case "user":
 		usrService, ok := serv.(service.UserService)
@@ -92,11 +97,13 @@ func (c Container) handlerFactory(serv service.Servicer, v validator.Validate) e
 	case "app":
 		aService, ok := serv.(service.AppService)
 		if !ok {
+			log.Printf("not type app service")
 			return c.ServiceErr(serv.Name())
 		}
 		c.handlers = append(c.handlers, rest.NewAppHandler(aService, v, *c.logger))
 		return nil
 	default:
+		log.Printf("hit default case")
 		return errors.New("unsupported service name")
 	}
 }

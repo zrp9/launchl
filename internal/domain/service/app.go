@@ -24,7 +24,7 @@ func NewAppService(r pgsql.AppRepo, c valkaree.Cache) AppService {
 }
 
 func (a AppService) Name() string {
-	return "App"
+	return "app"
 }
 
 func (a AppService) CreateFeatures(ctx context.Context, feats []*core.Feature) error {
@@ -54,14 +54,14 @@ func (a AppService) GetFeature(ctx context.Context, id string) (*core.Feature, e
 }
 
 func (a AppService) GetFeatures(ctx context.Context, pg, limit int) ([]core.Feature, error) {
-	feats, err := a.cache.Get(ctx, fmt.Sprintf("features:%v:%v", pg, limit))
-	if err != nil {
+	featCache, err := a.cache.Get(ctx, fmt.Sprintf("features:%v:%v", pg, limit))
+	if err != nil && err != valkaree.ErrEmptyCache {
 		return nil, err
 	}
 
-	if feats != "" {
+	if featCache != "" {
 		var features []core.Feature
-		if err = json.Unmarshal([]byte(feats), &features); err != nil {
+		if err = json.Unmarshal([]byte(featCache), &features); err != nil {
 			return nil, err
 		}
 		return features, nil
@@ -85,14 +85,14 @@ func (a AppService) GetFeatures(ctx context.Context, pg, limit int) ([]core.Feat
 }
 
 func (a AppService) GetRole(ctx context.Context, name string) (core.Role, error) {
-	crole, err := a.cache.Get(ctx, fmt.Sprintf("role:%v", name))
-	if err != nil {
+	cCache, err := a.cache.Get(ctx, fmt.Sprintf("role:%v", name))
+	if err != nil && err != valkaree.ErrEmptyCache {
 		return core.Role{}, err
 	}
 
-	if crole != "" {
+	if cCache != "" {
 		var role core.Role
-		if err = json.Unmarshal([]byte(crole), &role); err != nil {
+		if err = json.Unmarshal([]byte(cCache), &role); err != nil {
 			return core.Role{}, err
 		}
 
@@ -114,4 +114,26 @@ func (a AppService) GetRole(ctx context.Context, name string) (core.Role, error)
 	}
 
 	return role, nil
+}
+
+func (a AppService) GetRoles(ctx context.Context) ([]core.Role, error) {
+	rCache, err := a.cache.Get(ctx, "roles")
+	if err != nil && err != valkaree.ErrEmptyCache {
+		return nil, fmt.Errorf("cache error %w", err)
+	}
+
+	if rCache != "" {
+		var roles []core.Role
+		if err = json.Unmarshal([]byte(rCache), &roles); err != nil {
+			return nil, err
+		}
+		return roles, nil
+	}
+
+	roles, err := a.appRepo.GetAllRoles(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return roles, nil
 }

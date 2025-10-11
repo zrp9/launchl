@@ -1,4 +1,4 @@
-package render
+package email
 
 import (
 	"embed"
@@ -8,7 +8,6 @@ import (
 	texttmpl "text/template"
 )
 
-//go:embed ../templates/**/*
 var fs embed.FS
 
 type Renderer struct {

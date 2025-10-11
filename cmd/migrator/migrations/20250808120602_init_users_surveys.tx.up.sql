@@ -35,17 +35,18 @@ create table if not exists users (
 	phone varchar(12) NULL,
 	first_name VARCHAR(100) NOT NULL,
 	last_name VARCHAR(100) NOT NULL,
-	role_id INTEGER NOT NULL REFERENCES roles(id) on delete cascade,
+	role_id uuid NOT NULL REFERENCES roles(id) on delete cascade,
 	would_use boolean default false,
 	comments text null,
 	company_name varchar(150) not null,
 	que_position integer not null,
+	referal_url varchar(255) not null unique,
 	created_at TIMESTAMPTZ not null DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMPTZ not null DEFAULT CURRENT_TIMESTAMP
-)
+);
 
 CREATE INDEX IF NOT EXISTS idx_usr_uid on users (email);
-CREATE INDEX IF NOT EXISTS idx_usr_uid on users (would_use);
+CREATE INDEX IF NOT EXISTS idx_usr_would_use on users (would_use);
 
 create table if not exists surveys (
 	id uuid default uuid_generate_v4() primary key,
@@ -58,7 +59,7 @@ create table if not exists surveys (
 
 create table if not exists survey_questions (
 	id uuid default uuid_generate_v4() primary key,
-	survey_id uuid not null references survey (id) on delete cascade,
+	survey_id uuid not null references surveys (id) on delete cascade,
 	question_type question_type not null default 'check',
 	prompt text not null,
 	position integer not null default 0,
@@ -74,19 +75,20 @@ create table if not exists survey_question_option (
 	question_id uuid not null references survey_questions(id) on delete cascade,
 	position integer not null default 0,
 	label varchar(255) not null,
-	value string varchar(255) null
+	value varchar(255) null
 );
 
 create table if not exists survey_responses (
+	id uuid default uuid_generate_v4() primary key,
 	question_id uuid not null references survey_questions(id) on delete cascade,
 	user_id uuid not null references users(id) on delete cascade,
-	primary key (question_id, user_id),
+	--unique (question_id, user_id),
 	option_id uuid not null references survey_question_option(id),
 	written_response text null
 );
 
 create table if not exists referals (
 	id uuid default uuid_generate_v4() primary key,
-	referer_id uuid not null references users (id) on delete cascade,
-	referee_id uuid not null references users (id) on delete cascade
+	referer_id uuid not null references users(id) on delete cascade,
+	referee_id uuid not null references users(id) on delete cascade
 );

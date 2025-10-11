@@ -165,17 +165,17 @@ func GetAppRoles() []AppRoles {
 		{
 			ID:          uuid.New(),
 			Name:        "subscriber",
-			Permissions: GrantPermissions(Read, Write),
+			Permissions: "read-write",
 		},
 		{
 			ID:          uuid.New(),
 			Name:        "guest",
-			Permissions: GrantPermissions(Read),
+			Permissions: "read",
 		},
 		{
 			ID:          uuid.New(),
 			Name:        "SuperAdmin",
-			Permissions: GrantPermissions(SuperAdmin),
+			Permissions: "all",
 		},
 	}
 }
