@@ -3,6 +3,7 @@ package pgsql
 import (
 	"context"
 	"database/sql"
+	"log"
 
 	"github.com/uptrace/bun"
 	"github.com/zrp9/launchl/internal/domain/core"
@@ -26,17 +27,24 @@ func (s SurveyRepo) GetActiveSurvey(ctx context.Context) (*core.Survey, error) {
 	var survey core.Survey
 	err := s.repo.BnDB().NewSelect().
 		Model(&survey).
-		Relation("SurveyQuestion", func(sq *bun.SelectQuery) *bun.SelectQuery {
+		Relation("Questions", func(sq *bun.SelectQuery) *bun.SelectQuery {
 			return sq.Where("sq.active = TRUE").OrderExpr("sq.position ASC")
 		}).
 		Relation("Questions.Options", func(sqo *bun.SelectQuery) *bun.SelectQuery { return sqo.Where("sqo.position ASC") }).
 		Where("? = ?", bun.Ident("active"), true).
 		Limit(1).
-		Scan(ctx, &survey)
+		Scan(ctx)
+	log.Println("ran query ")
 	if err != nil {
+		log.Println("query err here ")
+		if err == sql.ErrNoRows {
+			log.Println("no rows err")
+			return nil, ErrNoRecords
+		}
 		return nil, err
 	}
 
+	log.Println("returning survey")
 	return &survey, nil
 }
 
@@ -56,8 +64,8 @@ func (s SurveyRepo) DeleteSurvey(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s SurveyRepo) GetQuestion(ctx context.Context, id string) (*core.SurveyQuestion, error) {
-	var question core.SurveyQuestion
+func (s SurveyRepo) GetQuestion(ctx context.Context, id string) (*core.Question, error) {
+	var question core.Question
 	if err := s.repo.BnDB().NewSelect().Model(&question).Where("? = ?", bun.Ident("id"), id).Scan(ctx, &question); err != nil {
 		return nil, err
 	}
@@ -65,8 +73,8 @@ func (s SurveyRepo) GetQuestion(ctx context.Context, id string) (*core.SurveyQue
 	return &question, nil
 }
 
-func (s SurveyRepo) GetAllQuestions(ctx context.Context) ([]*core.SurveyQuestion, error) {
-	var questions []*core.SurveyQuestion
+func (s SurveyRepo) GetAllQuestions(ctx context.Context) ([]*core.Question, error) {
+	var questions []*core.Question
 	if err := s.repo.BnDB().NewSelect().Model(&questions).Scan(ctx, &questions); err != nil {
 		return nil, err
 	}
@@ -74,7 +82,7 @@ func (s SurveyRepo) GetAllQuestions(ctx context.Context) ([]*core.SurveyQuestion
 	return questions, nil
 }
 
-func (s SurveyRepo) CreateQuestion(ctx context.Context, question *core.SurveyQuestion) error {
+func (s SurveyRepo) CreateQuestion(ctx context.Context, question *core.Question) error {
 	if err := s.repo.BnDB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		if _, err := tx.NewInsert().Model(&question).Exec(ctx); err != nil {
 			return err
@@ -91,7 +99,7 @@ func (s SurveyRepo) CreateQuestion(ctx context.Context, question *core.SurveyQue
 	return nil
 }
 
-func (s SurveyRepo) UpdateQuestion(ctx context.Context, question *core.SurveyQuestion) error {
+func (s SurveyRepo) UpdateQuestion(ctx context.Context, question *core.Question) error {
 	return s.repo.BnDB().NewUpdate().Model(&question).Scan(ctx, &question)
 }
 
@@ -101,7 +109,7 @@ func (s SurveyRepo) DeleteQuestion(ctx context.Context, id string) error {
 			return err
 		}
 
-		if err := tx.NewDelete().Model(&core.SurveyQuestion{}).Where("? = ?", bun.Ident("id"), id).Scan(ctx, &core.SurveyQuestion{}); err != nil {
+		if err := tx.NewDelete().Model(&core.Question{}).Where("? = ?", bun.Ident("id"), id).Scan(ctx, &core.Question{}); err != nil {
 			return err
 		}
 

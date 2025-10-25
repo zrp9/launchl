@@ -41,9 +41,10 @@ func (u UserHandler) RegisterRoutes(m *http.ServeMux) {
 	log.Printf("MUX in user hndler register:  %p", m)
 	m.HandleFunc("POST /api/v1/user/subscribe", u.HandleLogging(u.HandleSubscribe))
 	// get users number in queue
-	m.HandleFunc("GET /api/v1/user/{username}/position", u.HandleLogging(u.HandleCheckQueue))
+	m.HandleFunc("GET /api/v1/user/que/position/{email}", u.HandleLogging(u.HandleCheckQueue))
 	m.HandleFunc("POST /api/v1/user/referred/{urlId}", u.HandleLogging(u.HandleSubscribeRefered))
-	m.HandleFunc("GET /api/v1/user/{username}/rlink", u.HandleLogging(u.HandleGetReferLink))
+	m.HandleFunc("GET /api/v1/user/{email}/rlink", u.HandleLogging(u.HandleGetReferLink))
+	m.HandleFunc("POST /api/v1/user/{email}", u.HandleLogging(u.HandleDeleteUser))
 }
 
 func (u UserHandler) HandleLogging(hn APIHandler) http.HandlerFunc {
@@ -114,12 +115,12 @@ func (u UserHandler) HandleCheckQueue(w http.ResponseWriter, r *http.Request) er
 		return APIErr{Status: http.StatusGatewayTimeout, Err: err}
 	}
 
-	usrname, err := request.ParseUsername(r)
+	email, err := request.ParseEmail(r)
 	if err != nil {
 		return APIErr{Status: http.StatusBadRequest, Err: err}
 	}
 
-	position, err := u.s.CheckQuePosition(r.Context(), usrname)
+	position, err := u.s.CheckQuePosition(r.Context(), email)
 	if err != nil {
 		request.WriteErr(w, http.StatusBadRequest, err)
 	}
@@ -153,7 +154,7 @@ func (u UserHandler) HandleSubscribeRefered(w http.ResponseWriter, r *http.Reque
 	}
 
 	res := request.JSON{
-		"users": "",
+		"user": usr,
 	}
 
 	return request.WriteJSON(w, http.StatusOK, res)
@@ -164,12 +165,12 @@ func (u UserHandler) HandleGetReferLink(w http.ResponseWriter, r *http.Request) 
 		return APIErr{Status: http.StatusRequestTimeout, Err: err}
 	}
 
-	usrname, err := request.ParseUsername(r)
+	email, err := request.ParseEmail(r)
 	if err != nil {
 		return err
 	}
 
-	refLink, position, err := u.s.GetRefLinkAndPosition(r.Context(), usrname)
+	refLink, position, err := u.s.GetRefLinkAndPosition(r.Context(), email)
 	if err != nil {
 		return err
 	}

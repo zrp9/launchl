@@ -3,6 +3,7 @@ package pgsql
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log"
 
@@ -123,4 +124,25 @@ func (f AppRepo) GetRoleByID(ctx context.Context, id string) (core.Role, error) 
 	}
 
 	return role, nil
+}
+
+func (f AppRepo) CreateSurvey(ctx context.Context, survey *core.Survey, questions []core.Question, options []core.SurveyQuestionOption) (*core.Survey, error) {
+	if err := f.repo.BnDB().RunInTx(ctx, &sql.TxOptions{ReadOnly: false}, func(ctx context.Context, tx bun.Tx) error {
+		if err := tx.NewInsert().Model(&survey).Scan(ctx, &survey); err != nil {
+			return err
+		}
+
+		if err := tx.NewInsert().Model(&questions).Scan(ctx, &questions); err != nil {
+			return err
+		}
+
+		if err := tx.NewInsert().Model(&options).Scan(ctx, &options); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return survey, nil
 }

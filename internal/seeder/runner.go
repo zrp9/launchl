@@ -2,6 +2,7 @@ package seeder
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -12,16 +13,17 @@ import (
 
 type SeederAdapter struct {
 	service service.AppService
+	args    []string
 }
 
-func SeederFactory(s service.AppService) SeederAdapter {
+func SeederFactory(s service.AppService, args []string) SeederAdapter {
 	return SeederAdapter{
 		service: s,
+		args:    args,
 	}
 }
 
 func (s SeederAdapter) seedFeatures() error {
-	log.Println("Starting feature seeder...")
 	features := GetAppFeatures()
 	feats := make([]*core.Feature, 0, len(features))
 	for _, f := range features {
@@ -43,7 +45,6 @@ func (s SeederAdapter) seedFeatures() error {
 }
 
 func (s SeederAdapter) seedRoles() error {
-	log.Println("Starting role seeder...")
 	roles := GetAppRoles()
 	appRoles := make([]*core.Role, 0, len(roles))
 	for _, role := range roles {
@@ -62,14 +63,81 @@ func (s SeederAdapter) seedRoles() error {
 	return nil
 }
 
+func (s SeederAdapter) seedSurvey() error {
+	survey := GetAppSurvey()
+	if err := s.service.CreateSurvey(context.TODO(), survey); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s SeederAdapter) registry() map[string]func() error {
+	return map[string]func() error{
+		"features": s.seedFeatures,
+		"roles":    s.seedRoles,
+		"survey":   s.seedSurvey,
+	}
+}
+
 func (s SeederAdapter) LoadDBData() error {
-	// log.Println("Starting db seeding...")
+	log.Println("Starting db seeding...")
+	reg := s.registry()
+	targets := normalizeArgs(s.args)
+	if len(targets) == 1 && targets[0] == "all" {
+		targets = keysInOrder(reg)
+	}
+
+	for _, name := range targets {
+		fn, ok := reg[name]
+		if !ok {
+			return fmt.Errorf("unknown model %q (available: %s)", name, strings.Join(keysInOrder(reg), ", "))
+		}
+		log.Printf("seeding %s ...", name)
+		if err := fn(); err != nil {
+			return fmt.Errorf("seeding %s failed: %w", name, err)
+		}
+		log.Printf("seeding %s complete", name)
+	}
 	// if err := s.seedFeatures(); err != nil {
 	// 	return err
 	// }
 
-	if err := s.seedRoles(); err != nil {
-		return err
-	}
+	// if err := s.seedRoles(); err != nil {
+	// 	return err
+	// }
 	return nil
+}
+
+func normalizeArgs(args []string) []string {
+	var out []string
+	for _, arg := range args {
+		for _, p := range strings.Split(arg, ",") {
+			p = strings.TrimSpace(strings.ToLower(p))
+			if p != "" {
+				out = append(out, p)
+			}
+		}
+	}
+	return out
+}
+
+func keysInOrder(m map[string]func() error) []string {
+	order := []string{"roles", "features", "survey"}
+	var out []string
+	seen := map[string]bool{}
+	for _, k := range order {
+		if _, ok := m[k]; ok && !seen[k] {
+			out = append(out, k)
+			seen[k] = true
+		}
+	}
+
+	for k := range m {
+		if !seen[k] {
+			out = append(out, k)
+		}
+	}
+
+	return out
 }

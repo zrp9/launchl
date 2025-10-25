@@ -21,5 +21,5 @@ type IUserService interface {
 	CheckQuePosition(ctx context.Context, email string) (int, error)
 	SignupReferal(ctx context.Context, referee core.User, refererID string) error
 	DeleteUser(ctx context.Context, email string) error
-	GetRefLinkAndPosition(ctx context.Context, usrname string) (core.User, error)
+	GetRefLinkAndPosition(ctx context.Context, email string) (core.User, error)
 }

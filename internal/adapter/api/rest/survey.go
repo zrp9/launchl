@@ -12,6 +12,7 @@ import (
 	"github.com/zrp9/launchl/internal/adapter/converter"
 	"github.com/zrp9/launchl/internal/adapter/dto"
 	"github.com/zrp9/launchl/internal/adapter/log/crane"
+	"github.com/zrp9/launchl/internal/adapter/repo/pgsql"
 	"github.com/zrp9/launchl/internal/domain/service"
 	"github.com/zrp9/launchl/internal/request"
 )
@@ -44,7 +45,7 @@ func (s SurveyHandler) HandleLogging(hn APIHandler) http.HandlerFunc {
 func (s SurveyHandler) RegisterRoutes(m *http.ServeMux) {
 	log.Printf("MUX in survey hndler register:  %p", m)
 	m.HandleFunc("GET /api/v1/survey", s.HandleLogging(s.HandleGetSurvey))
-	m.HandleFunc("POST /api/v1/survey/{username}", s.HandleLogging(s.HandleSurveyResponse))
+	m.HandleFunc("POST /api/v1/survey/respond/{username}", s.HandleLogging(s.HandleSurveyResponse))
 }
 
 func (s SurveyHandler) HandleGetSurvey(w http.ResponseWriter, r *http.Request) error {
@@ -54,6 +55,10 @@ func (s SurveyHandler) HandleGetSurvey(w http.ResponseWriter, r *http.Request) e
 
 	survey, err := s.s.GetSurvey(r.Context())
 	if err != nil {
+		if err == pgsql.ErrNoRecords {
+			return request.WriteJSON(w, http.StatusOK, request.JSON{"survey": ""})
+		}
+		log.Printf("get survey error %v", err)
 		return APIErr{Status: http.StatusRequestTimeout, Err: err}
 	}
 

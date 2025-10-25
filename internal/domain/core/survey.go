@@ -22,16 +22,18 @@ const (
 
 type Survey struct {
 	bun.BaseModel `bun:"table:surveys,alias:s"`
-	ID            uuid.UUID        `bun:"id,pk,type:uuid" json:"id" validate:"uuidv4"`
-	Questions     []SurveyQuestion `bun:"rel:has-many,join:id=survey_id" json:"questions"`
-	Version       string           `bun:"type:varchar(75),notnull,nullzero" json:"version" validate:"numeric"`
-	Name          string           `bun:"type:varchar(255),notnull,nullzero" json:"name" validate:"alphanum"`
-	Active        bool             `bun:"type:boolean,notnull,nullzero,default:false" json:"active" validate:"boolean"`
-	CreatedAt     time.Time        `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"createdAt"`
-	UpdatedAt     time.Time        `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"updatedAt"`
+	ID            uuid.UUID  `bun:"id,pk,type:uuid" json:"id" validate:"uuidv4"`
+	Questions     []Question `bun:"rel:has-many,join:id=survey_id" json:"questions"`
+	Version       string     `bun:"type:varchar(75),notnull,nullzero" json:"version" validate:"numeric"`
+	Name          string     `bun:"type:varchar(255),notnull,nullzero" json:"name" validate:"alphanum"`
+	Intro         string     `bun:"type:varchar(255),notnull,nullzero" json:"intro" validate:"alphanum"`
+	ClosingText   string     `bun:"type:varchar(255),notnull,nullzero" json:"closingText"`
+	Active        bool       `bun:"type:boolean,notnull,nullzero,default:false" json:"active" validate:"boolean"`
+	CreatedAt     time.Time  `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"createdAt"`
+	UpdatedAt     time.Time  `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"updatedAt"`
 }
 
-type SurveyQuestion struct {
+type Question struct {
 	bun.BaseModel `bun:"table:survey_questions,alias:sq"`
 
 	ID           uuid.UUID              `bun:"id,pk,type:uuid" json:"id" validate:"uuidv4"`
@@ -63,7 +65,7 @@ type SurveyResponse struct {
 	QuestionID     uuid.UUID             `bun:"type:uuid" json:"questionId" validate:"uuidv4"`
 	UserID         uuid.UUID             `bun:"type:uuid" json:"userId" validate:"uuidv4"`
 	OptionID       uuid.UUID             `bun:"type:uuid" json:"optionId" validate:"uuidv4"`
-	Question       *SurveyQuestion       `bun:"rel:belongs-to,join:question_id=id" json:"question"`
+	Question       *Question             `bun:"rel:belongs-to,join:question_id=id" json:"question"`
 	User           *User                 `bun:"rel:belongs-to,join:user_id=id" json:"user"`
 	QuestionOption *SurveyQuestionOption `bun:"rel:belongs-to,join:option_id=id" json:"questionOption"`
 	// WrittenResponse holds the response to text questions

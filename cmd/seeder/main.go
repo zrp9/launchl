@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -26,12 +27,17 @@ func main() {
 		return
 	}
 
-	if err := run(ctx, *cfg); err != nil {
+	fmt.Println("Args:", os.Args)
+	if len(os.Args) > 1 {
+		fmt.Println("First argument:", os.Args[1])
+	}
+
+	if err := run(ctx, *cfg, os.Args); err != nil {
 		log.Printf("an error occurred while running server %v", err)
 	}
 }
 
-func run(ctx context.Context, cfg config.Config) error {
+func run(ctx context.Context, cfg config.Config, args []string) error {
 	ctx, cancel := context.WithTimeout(ctx, 5.*time.Minute)
 	defer cancel()
 
@@ -53,7 +59,7 @@ func run(ctx context.Context, cfg config.Config) error {
 
 	appRepo := pgsql.NewAppRepo(dbStore)
 	appService := service.NewAppService(appRepo, cache)
-	adapter := seeder.SeederFactory(appService)
+	adapter := seeder.SeederFactory(appService, args)
 	if err := adapter.LoadDBData(); err != nil {
 		return err
 	}

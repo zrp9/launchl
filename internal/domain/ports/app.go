@@ -29,4 +29,5 @@ type AppService interface {
 	GetFeatures(ctx context.Context, pg, limit int) (*core.Feature, error)
 	GetRole(ctx context.Context, name string) (*core.Role, error)
 	GetRoles(ctx context.Context) ([]*core.Role, error)
+	CreateSurvey(ctx context.Context, survey *core.Survey)
 }

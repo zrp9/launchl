@@ -137,3 +137,21 @@ func (a AppService) GetRoles(ctx context.Context) ([]core.Role, error) {
 
 	return roles, nil
 }
+
+func (a AppService) CreateSurvey(ctx context.Context, survey core.Survey) error {
+	options := make([]core.SurveyQuestionOption, 0)
+	questions := make([]core.Question, 8)
+	for _, op := range survey.Questions {
+		options = append(options, op.Options...)
+	}
+
+	for _, q := range survey.Questions {
+		questions = append(questions, q)
+	}
+
+	if _, err := a.appRepo.CreateSurvey(ctx, &survey, questions, options); err != nil {
+		return err
+	}
+
+	return nil
+}

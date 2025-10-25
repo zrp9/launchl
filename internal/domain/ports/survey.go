@@ -12,10 +12,10 @@ type ISurveyRepo interface {
 	CreateSurvey(ctx context.Context, usr *core.Survey) (*core.Survey, error)
 	UpdateSurvey(ctx context.Context, usr *core.Survey) error
 	DeleteSurvey(ctx context.Context, id string) error
-	GetQuestion(ctx context.Context, id string) (*core.SurveyQuestion, error)
-	GetAllQuestions(ctx context.Context) ([]*core.SurveyQuestion, error)
-	CreateQuestion(ctx context.Context, q *core.SurveyQuestion) (*core.SurveyQuestion, error)
-	UpdateQuestion(ctx context.Context, q *core.SurveyQuestion) error
+	GetQuestion(ctx context.Context, id string) (*core.Question, error)
+	GetAllQuestions(ctx context.Context) ([]*core.Question, error)
+	CreateQuestion(ctx context.Context, q *core.Question) (*core.Question, error)
+	UpdateQuestion(ctx context.Context, q *core.Question) error
 	DeleteQuestion(ctx context.Context, id string) error
 	CreateQuestionOption(ctx context.Context, option *core.SurveyQuestionOption) error
 	UpdateQuestionOption(ctx context.Context, op *core.SurveyQuestionOption) error
