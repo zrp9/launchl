@@ -14,7 +14,7 @@ import (
 type User struct {
 	bun.BaseModel `bun:"table:users,alias:u"`
 
-	ID          uuid.UUID `bun:"id,pk,type:uuid,notnull,unique" json:"uid" validate:"uuid4"`
+	ID          uuid.UUID `bun:"id,pk,type:uuid,notnull,unique" json:"id" validate:"uuid4"`
 	Email       string    `bun:"type:varchar(150),notnull,unique" json:"email" validate:"asci"`
 	Username    string    `bun:"type:varchar(150),notnull,nullzero" json:"username" validate:"ascii"`
 	Phone       string    `bun:"type:varchar(12),notnull" json:"phone" validate:"numeric"`

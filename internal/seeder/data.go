@@ -284,6 +284,62 @@ func GetAppRoles() []AppRoles {
 	}
 }
 
+func GetTestimonials() {
+	return []Testimonials{
+
+    {
+      "id": "1",
+      "name": "Mark H.",
+      "role": "Small Landlord & Contractor",
+      "rating": 5,
+      "title": "Everything finally in one place",
+      "quote": "I used to juggle spreadsheets, text messages, and notebooks just to track maintenance and rent. With Lessor, everything’s finally in one place. The AI bid feature even caught things I forgot to include — it’s saved me hours on every job.",
+      "avatar": "/images/testimonials/mark.jpg",
+      "date": "2025-01-10"
+    },
+    {
+      "id": "2",
+      "name": "Dana P.",
+      "role": "Duplex Owner",
+      "rating": 5,
+      "title": "Made tax time painless",
+      "quote": "The expense tracker and tax reports made filing this year painless. I actually know how much profit each property brings in now — something I couldn’t easily see before.",
+      "avatar": "/images/testimonials/dana.jpg",
+      "date": "2025-01-15"
+    },
+    {
+      "id": "3",
+      "name": "Chris L.",
+      "role": "Property Owner",
+      "rating": 5,
+      "title": "Feels like it was built for me",
+      "quote": "I love that I can manage my listings, tenants, and side-jobs all from one dashboard. It feels like this app was built by someone who really understands how small landlords work.",
+      "avatar": "/images/testimonials/chris.jpg",
+      "date": "2025-01-18"
+    },
+    {
+      "id": "4",
+      "name": "Samantha T.",
+      "role": "Restoration Business Owner",
+      "rating": 4,
+      "title": "AI bidding is a game changer",
+      "quote": "I’ve tried a few estimating tools, but the AI-powered bid generator in Lessor actually includes the little stuff like nails and sealant. That alone makes it worth it.",
+      "avatar": "/images/testimonials/samantha.jpg",
+      "date": "2025-01-22"
+    },
+    {
+      "id": "5",
+      "name": "Ethan M.",
+      "role": "New Landlord",
+      "rating": 5,
+      "title": "Made me look professional fast",
+      "quote": "As a new landlord, I didn’t know where to start. Lessor gave me a clean, professional way to manage tenants and look organized from day one.",
+      "avatar": "/images/testimonials/ethan.jpg",
+      "date": "2025-01-28"
+    }
+	}
+}
+
 func getQuestions(surveyID uuid.UUID) []core.Question {
 	questionIDs := make([]uuid.UUID, 9)
 
