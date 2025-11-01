@@ -20,6 +20,7 @@ type Feature struct {
 	Title            string    `bun:"type:varchar(150),notnull,nullzero" json:"title" validate:"alphanum"`
 	Name             string    `bun:"type:varchar(150),notnull,nullzero" json:"name" validate:"alphanum"`
 	Details          string    `bun:"type:text,notnull,nullzero" json:"details" validate:"alphanum"`
+	Img              string    `bun:"type:varchar(255),notnull,nullzero" json:"img"`
 	QuickDescription string    `bun:"type:text,notnull,nullzero" json:"quickDescription" validate:"alphanum"`
 	CreatedAt        time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"createdAt"`
 	UpdatedAt        time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"updatedAt"`

@@ -33,6 +33,7 @@ func (s SeederAdapter) seedFeatures() error {
 			Name:             f.Name,
 			Details:          strings.Join(f.Details, ","),
 			QuickDescription: f.QuickDescription,
+			Img:              f.Img,
 			CreatedAt:        time.Now(),
 			UpdatedAt:        time.Now(),
 		})
@@ -65,7 +66,17 @@ func (s SeederAdapter) seedRoles() error {
 
 func (s SeederAdapter) seedSurvey() error {
 	survey := GetAppSurvey()
+	log.Printf("questions  before calling service %v", survey.Questions)
 	if err := s.service.CreateSurvey(context.TODO(), survey); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s SeederAdapter) seedTestimonials() error {
+	testimonials := GetTestimonials()
+	if err := s.service.CreateTestimonials(context.TODO(), testimonials); err != nil {
 		return err
 	}
 
@@ -74,9 +85,10 @@ func (s SeederAdapter) seedSurvey() error {
 
 func (s SeederAdapter) registry() map[string]func() error {
 	return map[string]func() error{
-		"features": s.seedFeatures,
-		"roles":    s.seedRoles,
-		"survey":   s.seedSurvey,
+		"features":     s.seedFeatures,
+		"roles":        s.seedRoles,
+		"survey":       s.seedSurvey,
+		"testimonials": s.seedTestimonials,
 	}
 }
 
@@ -84,6 +96,7 @@ func (s SeederAdapter) LoadDBData() error {
 	log.Println("Starting db seeding...")
 	reg := s.registry()
 	targets := normalizeArgs(s.args)
+	log.Printf("normalized args %v", targets)
 	if len(targets) == 1 && targets[0] == "all" {
 		targets = keysInOrder(reg)
 	}

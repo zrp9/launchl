@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/zrp9/launchl/internal/adapter/cache/valkaree"
 	"github.com/zrp9/launchl/internal/adapter/repo/pgsql"
@@ -54,7 +55,7 @@ func (a AppService) GetFeature(ctx context.Context, id string) (*core.Feature, e
 }
 
 func (a AppService) GetFeatures(ctx context.Context, pg, limit int) ([]core.Feature, error) {
-	featCache, err := a.cache.Get(ctx, fmt.Sprintf("features:%v:%v", pg, limit))
+	featCache, err := a.cache.Get(ctx, fmt.Sprintf("ll-features:%v:%v", pg, limit))
 	if err != nil && err != valkaree.ErrEmptyCache {
 		return nil, err
 	}
@@ -64,11 +65,15 @@ func (a AppService) GetFeatures(ctx context.Context, pg, limit int) ([]core.Feat
 		if err = json.Unmarshal([]byte(featCache), &features); err != nil {
 			return nil, err
 		}
+		log.Printf("features from cache %v", features)
 		return features, nil
 	}
 
 	features, err := a.appRepo.GetAllFeatures(ctx, repo.Pager{Page: pg, Limit: limit})
 	if err != nil {
+		if err == pgsql.ErrNoRecords {
+			return []core.Feature{}, nil
+		}
 		return nil, err
 	}
 
@@ -77,7 +82,7 @@ func (a AppService) GetFeatures(ctx context.Context, pg, limit int) ([]core.Feat
 		return nil, err
 	}
 
-	if err = a.cache.Set(ctx, fmt.Sprintf("features:%v:%v", pg, limit), string(jfeats)); err != nil {
+	if err = a.cache.Set(ctx, fmt.Sprintf("ll-features:%v:%v", pg, limit), string(jfeats)); err != nil {
 		return nil, err
 	}
 
@@ -125,6 +130,7 @@ func (a AppService) GetRoles(ctx context.Context) ([]core.Role, error) {
 	if rCache != "" {
 		var roles []core.Role
 		if err = json.Unmarshal([]byte(rCache), &roles); err != nil {
+			log.Printf("error unmarshalling %v", err)
 			return nil, err
 		}
 		return roles, nil
@@ -132,6 +138,7 @@ func (a AppService) GetRoles(ctx context.Context) ([]core.Role, error) {
 
 	roles, err := a.appRepo.GetAllRoles(ctx)
 	if err != nil {
+		log.Printf("repo error %v", err)
 		return nil, err
 	}
 
@@ -140,18 +147,31 @@ func (a AppService) GetRoles(ctx context.Context) ([]core.Role, error) {
 
 func (a AppService) CreateSurvey(ctx context.Context, survey core.Survey) error {
 	options := make([]core.SurveyQuestionOption, 0)
-	questions := make([]core.Question, 8)
 	for _, op := range survey.Questions {
 		options = append(options, op.Options...)
 	}
 
-	for _, q := range survey.Questions {
-		questions = append(questions, q)
-	}
+	log.Printf("options in service before repo call %v", options)
 
-	if _, err := a.appRepo.CreateSurvey(ctx, &survey, questions, options); err != nil {
+	if _, err := a.appRepo.CreateSurvey(ctx, &survey, survey.Questions, options); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (a AppService) CreateTestimonials(ctx context.Context, testimonials []core.Testimonial) error {
+	if err := a.appRepo.CreateTestimonials(ctx, testimonials); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a AppService) GetTestimonials(ctx context.Context) ([]core.Testimonial, error) {
+	testys, err := a.appRepo.GetTestimonials(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return testys, nil
 }

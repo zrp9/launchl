@@ -22,6 +22,11 @@ type RolePort interface {
 	BulkCreateRoles(ctx context.Context, roles []core.Role) error
 }
 
+type TestimonialsPort interface {
+	CreateTestimonials(ctx context.Context, testimonials []core.Testimonial) error
+	GetTestimonials(ctx context.Context) ([]core.Testimonial, error)
+}
+
 type AppService interface {
 	CreateFeatures(ctx context.Context, feats []*core.Feature) error
 	CreateRoles(ctx context.Context, roles []*core.Role) error
@@ -30,4 +35,6 @@ type AppService interface {
 	GetRole(ctx context.Context, name string) (*core.Role, error)
 	GetRoles(ctx context.Context) ([]*core.Role, error)
 	CreateSurvey(ctx context.Context, survey *core.Survey)
+	CreateTestimonials(ctx context.Context, tests []core.Testimonial) error
+	GetTestimonials(ctx context.Context) ([]core.Testimonial, error)
 }

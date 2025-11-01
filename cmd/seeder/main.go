@@ -32,7 +32,8 @@ func main() {
 		fmt.Println("First argument:", os.Args[1])
 	}
 
-	if err := run(ctx, *cfg, os.Args); err != nil {
+	// only pass in args after the first index
+	if err := run(ctx, *cfg, os.Args[1:]); err != nil {
 		log.Printf("an error occurred while running server %v", err)
 	}
 }
@@ -59,6 +60,7 @@ func run(ctx context.Context, cfg config.Config, args []string) error {
 
 	appRepo := pgsql.NewAppRepo(dbStore)
 	appService := service.NewAppService(appRepo, cache)
+	log.Printf("seeder args %v", args)
 	adapter := seeder.SeederFactory(appService, args)
 	if err := adapter.LoadDBData(); err != nil {
 		return err

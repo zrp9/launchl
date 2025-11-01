@@ -4,6 +4,7 @@ package seeder
 import (
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/zrp9/launchl/internal/domain/core"
@@ -17,6 +18,7 @@ type AppFeature struct {
 	Details          []string
 	Description      string
 	QuickDescription string
+	Img              string
 }
 
 type AppRoles struct {
@@ -124,6 +126,7 @@ func GetAppFeatures() []AppFeature {
 				"Adjust <strong>waste factors</strong>, <strong>labor rates</strong>, and <strong>margins</strong> to fine-tune totals.",
 				"Export your finished bid as a <strong>PDF or job order</strong> with one click.",
 			},
+			Img: "bidding",
 		},
 		{
 			ID:       uuid.New(),
@@ -138,6 +141,7 @@ func GetAppFeatures() []AppFeature {
 			},
 			QuickDescription: "Track every dollar spend on your properties and generate clean, ready-to-file tax summaries.",
 			Description:      "From maintenance costs to material receipts, the Smart Expense Tracker keeps your books organized property-by-property. Easily categorize expenses (repairs, improvements, utilities, insurance, taxes) and attach receipts with one click. At tax time, export your data irectly into IRS friendly formats - including Schedule E reports - or share with your accountant. The system auto-totals deductible amounts, helping you save time and money while staying compliant.",
+			Img:              "expensetracking",
 		},
 		{
 			ID:          uuid.New(),
@@ -151,6 +155,7 @@ func GetAppFeatures() []AppFeature {
 				"Optimize and Reschedule appointments with <strong>AI powered Smart Scheduling</strong>",
 			},
 			QuickDescription: "Schedule open houses & walk-throughs",
+			Img:              "appointments",
 		},
 		{
 			ID:          uuid.New(),
@@ -163,6 +168,7 @@ func GetAppFeatures() []AppFeature {
 				"Securely store, organize, and share documents with tenants, contractors, and legal teams.",
 			},
 			QuickDescription: "AI-generate leases, eviction notices, and other documents",
+			Img:              "documents",
 		},
 		{
 			ID:          uuid.New(),
@@ -177,6 +183,7 @@ func GetAppFeatures() []AppFeature {
 				"Save time and ensure <strong>tax compliance</strong> with every export.",
 			},
 			QuickDescription: "Turn a year’s worth of property data into ready-to-file tax documents with one click.",
+			Img:              "taxes",
 		},
 		{
 			ID:       uuid.New(),
@@ -191,6 +198,7 @@ func GetAppFeatures() []AppFeature {
 			},
 			Description:      "Showcase your available units and attract qualified tenants — all in one place.",
 			QuickDescription: "Each landlord gets a personalized, mobile-friendly listings page to display current and upcoming vacancies. Add property photos, rent details, and availability dates. Tenants can submit applications, request walk-throughs, or join a waitlist directly from your public portal. Listings update automatically as units are leased, keeping your online presence fresh without extra work.",
+			Img:              "webpage",
 		},
 		{
 			ID:          uuid.New(),
@@ -205,6 +213,7 @@ func GetAppFeatures() []AppFeature {
 				"Access documents anytime from your <strong>dashboard or tenant portal</strong>.",
 			},
 			QuickDescription: "Store, share, and sign documents securely",
+			Img:              "docstorage",
 		},
 		{
 			ID:          uuid.New(),
@@ -219,6 +228,7 @@ func GetAppFeatures() []AppFeature {
 				"Sync payment data with your <strong>expense and tax reports</strong>.",
 			},
 			QuickDescription: "Collect rent and track payments the modern way — fast, transparent, and paper-free.",
+			Img:              "ledger",
 		},
 		{
 			ID:          uuid.New(),
@@ -233,6 +243,7 @@ func GetAppFeatures() []AppFeature {
 				"Link completed work to <strong>property expenses</strong> automatically.",
 			},
 			QuickDescription: "Tenants can submit issues, upload photos, and track repair progress in real time.",
+			Img:              "maintenance",
 		},
 		{
 			ID:          uuid.New(),
@@ -247,6 +258,7 @@ func GetAppFeatures() []AppFeature {
 				"Integrate with the <strong>Bid Generator</strong> for instant estimates.",
 			},
 			QuickDescription: "Show potential clients exactly what kind of work you do — from siding to bathroom remodels.",
+			Img:              "services",
 		},
 	}
 }
@@ -284,72 +296,75 @@ func GetAppRoles() []AppRoles {
 	}
 }
 
-func GetTestimonials() {
-	return []Testimonials{
-
-    {
-      "id": "1",
-      "name": "Mark H.",
-      "role": "Small Landlord & Contractor",
-      "rating": 5,
-      "title": "Everything finally in one place",
-      "quote": "I used to juggle spreadsheets, text messages, and notebooks just to track maintenance and rent. With Lessor, everything’s finally in one place. The AI bid feature even caught things I forgot to include — it’s saved me hours on every job.",
-      "avatar": "/images/testimonials/mark.jpg",
-      "date": "2025-01-10"
-    },
-    {
-      "id": "2",
-      "name": "Dana P.",
-      "role": "Duplex Owner",
-      "rating": 5,
-      "title": "Made tax time painless",
-      "quote": "The expense tracker and tax reports made filing this year painless. I actually know how much profit each property brings in now — something I couldn’t easily see before.",
-      "avatar": "/images/testimonials/dana.jpg",
-      "date": "2025-01-15"
-    },
-    {
-      "id": "3",
-      "name": "Chris L.",
-      "role": "Property Owner",
-      "rating": 5,
-      "title": "Feels like it was built for me",
-      "quote": "I love that I can manage my listings, tenants, and side-jobs all from one dashboard. It feels like this app was built by someone who really understands how small landlords work.",
-      "avatar": "/images/testimonials/chris.jpg",
-      "date": "2025-01-18"
-    },
-    {
-      "id": "4",
-      "name": "Samantha T.",
-      "role": "Restoration Business Owner",
-      "rating": 4,
-      "title": "AI bidding is a game changer",
-      "quote": "I’ve tried a few estimating tools, but the AI-powered bid generator in Lessor actually includes the little stuff like nails and sealant. That alone makes it worth it.",
-      "avatar": "/images/testimonials/samantha.jpg",
-      "date": "2025-01-22"
-    },
-    {
-      "id": "5",
-      "name": "Ethan M.",
-      "role": "New Landlord",
-      "rating": 5,
-      "title": "Made me look professional fast",
-      "quote": "As a new landlord, I didn’t know where to start. Lessor gave me a clean, professional way to manage tenants and look organized from day one.",
-      "avatar": "/images/testimonials/ethan.jpg",
-      "date": "2025-01-28"
-    }
+func GetTestimonials() []core.Testimonial {
+	return []core.Testimonial{
+		{
+			ID:     uuid.New(),
+			Name:   "Mark H.",
+			Role:   "Small Landlord & Contractor",
+			Rating: 5,
+			Title:  "Everything finally in one place",
+			Quote:  "I used to juggle spreadsheets, text messages, and notebooks just to track maintenance and rent. With Lessor, everything’s finally in one place. The AI bid feature even caught things I forgot to include — it’s saved me hours on every job.",
+			Avatar: "/images/testimonials/mark.jpg",
+			Date:   time.Date(2025, time.April, 1, 10, 10, 10, 0, time.UTC),
+		},
+		{
+			ID:     uuid.New(),
+			Name:   "Dana P.",
+			Role:   "Duplex Owner",
+			Rating: 5,
+			Title:  "Made tax time painless",
+			Quote:  "The expense tracker and tax reports made filing this year painless. I actually know how much profit each property brings in now — something I couldn’t easily see before.",
+			Avatar: "/images/testimonials/dana.jpg",
+			Date:   time.Date(2015, time.January, 1, 10, 10, 10, 0, time.UTC),
+		},
+		{
+			ID:     uuid.New(),
+			Name:   "Chris L.",
+			Role:   "Property Owner",
+			Rating: 5,
+			Title:  "Feels like it was built for me",
+			Quote:  "I love that I can manage my listings, tenants, and side-jobs all from one dashboard. It feels like this app was built by someone who really understands how small landlords work.",
+			Avatar: "/images/testimonials/chris.jpg",
+			Date:   time.Date(2025, time.January, 11, 10, 10, 10, 0, time.UTC),
+		},
+		{
+			ID:     uuid.New(),
+			Name:   "Samantha T.",
+			Role:   "Restoration Business Owner",
+			Rating: 4,
+			Title:  "AI bidding is a game changer",
+			Quote:  "I’ve tried a few estimating tools, but the AI-powered bid generator in Lessor actually includes the little stuff like nails and sealant. That alone makes it worth it.",
+			Avatar: "/images/testimonials/samantha.jpg",
+			Date:   time.Date(2025, time.March, 17, 10, 10, 10, 0, time.UTC),
+		},
+		{
+			ID:     uuid.New(),
+			Name:   "Ethan M.",
+			Role:   "New Landlord",
+			Rating: 5,
+			Title:  "Made me look professional fast",
+			Quote:  "As a new landlord, I didn’t know where to start. Lessor gave me a clean, professional way to manage tenants and look organized from day one.",
+			Avatar: "/images/testimonials/ethan.jpg",
+			Date:   time.Date(2025, time.July, 7, 10, 10, 10, 0, time.UTC),
+		},
 	}
 }
 
 func getQuestions(surveyID uuid.UUID) []core.Question {
-	questionIDs := make([]uuid.UUID, 9)
-
-	for _ = range 8 {
-		questionIDs = append(questionIDs, uuid.New())
-	}
+	q1 := uuid.New()
+	q2 := uuid.New()
+	q3 := uuid.New()
+	q4 := uuid.New()
+	q5 := uuid.New()
+	q6 := uuid.New()
+	q7 := uuid.New()
+	q8 := uuid.New()
+	q9 := uuid.New()
 
 	return []core.Question{
 		{
-			ID:           questionIDs[0],
+			ID:           q1,
 			Position:     0,
 			SurveyID:     surveyID,
 			QuestionType: "check",
@@ -361,42 +376,42 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			Options: []core.SurveyQuestionOption{
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[0],
+					QuestionID: q1,
 					Position:   0,
 					Label:      "Landlord / property owner",
 					Value:      "landlord / property owner",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[0],
+					QuestionID: q1,
 					Position:   1,
 					Label:      "Property manager",
 					Value:      "property manager",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[0],
+					QuestionID: q1,
 					Position:   2,
 					Label:      "Landlord / contractor",
 					Value:      "landlord / contractor",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[0],
+					QuestionID: q1,
 					Position:   3,
 					Label:      "Contractor / restoration bussiness owner",
 					Value:      "contractor / restoration business owner",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[0],
+					QuestionID: q1,
 					Position:   4,
 					Label:      "Tenant",
 					Value:      "tenant",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[0],
+					QuestionID: q1,
 					Position:   5,
 					Label:      "Other (please specify)",
 					// value in text box shown will append to value
@@ -405,7 +420,7 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			},
 		},
 		{
-			ID:           questionIDs[1],
+			ID:           q2,
 			Position:     1,
 			SurveyID:     surveyID,
 			QuestionType: "check",
@@ -415,35 +430,35 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			Options: []core.SurveyQuestionOption{
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[1],
+					QuestionID: q2,
 					Position:   0,
 					Label:      "1",
 					Value:      "1",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[1],
+					QuestionID: q2,
 					Position:   1,
 					Label:      "2-5",
 					Value:      "2-5",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[1],
+					QuestionID: q2,
 					Position:   2,
 					Label:      "6-10",
 					Value:      "6-10",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[1],
+					QuestionID: q2,
 					Position:   3,
 					Label:      "11-20",
 					Value:      "11-20",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[1],
+					QuestionID: q2,
 					Position:   4,
 					Label:      "21+",
 					Value:      "21+",
@@ -451,7 +466,7 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			},
 		},
 		{
-			ID:           questionIDs[2],
+			ID:           q3,
 			Position:     2,
 			SurveyID:     surveyID,
 			QuestionType: "multi-check",
@@ -462,42 +477,42 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			Options: []core.SurveyQuestionOption{
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[2],
+					QuestionID: q3,
 					Position:   0,
 					Label:      "Spreadsheets",
 					Value:      "spreadsheets",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[2],
+					QuestionID: q3,
 					Position:   1,
 					Label:      "QuickBooks",
 					Value:      "quickBooks",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[2],
+					QuestionID: q3,
 					Position:   2,
 					Label:      "Buildium",
 					Value:      "buildium",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[2],
+					QuestionID: q3,
 					Position:   3,
 					Label:      "Paper notebooks",
 					Value:      "paperNotebooks",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[2],
+					QuestionID: q3,
 					Position:   4,
 					Label:      "Nothing",
 					Value:      "nothing",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[2],
+					QuestionID: q3,
 					Position:   5,
 					Label:      "Other",
 					Value:      "other:",
@@ -505,7 +520,7 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			},
 		},
 		{
-			ID:           questionIDs[3],
+			ID:           q4,
 			Position:     3,
 			SurveyID:     surveyID,
 			QuestionType: "multi-check",
@@ -516,49 +531,49 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			Options: []core.SurveyQuestionOption{
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[3],
+					QuestionID: q4,
 					Position:   0,
 					Label:      "Keeping up with maintenance and repairs",
 					Value:      "keeping up with maintenance & repairs",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[3],
+					QuestionID: q4,
 					Position:   1,
 					Label:      "Tracking expenses and receipts",
 					Value:      "tracking expenss & receipts",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[3],
+					QuestionID: q4,
 					Position:   2,
 					Label:      "Estimating project costs accurately",
 					Value:      "estimating project costs",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[3],
+					QuestionID: q4,
 					Position:   3,
 					Label:      "Filing taxes / preparing Schedule E",
 					Value:      "filing taxes / preparing schedule E",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[3],
+					QuestionID: q4,
 					Position:   4,
 					Label:      "Collecting rent and payments",
 					Value:      "collecting rent & payments",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[3],
+					QuestionID: q4,
 					Position:   5,
 					Label:      "Communicating with tenants or contractors",
 					Value:      "communicating with tenants & contractors",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[3],
+					QuestionID: q4,
 					Position:   6,
 					Label:      "Something else",
 					Value:      "something else:",
@@ -566,7 +581,7 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			},
 		},
 		{
-			ID:           questionIDs[4],
+			ID:           q5,
 			SurveyID:     surveyID,
 			Position:     4,
 			QuestionType: "multi-check",
@@ -577,28 +592,28 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			Options: []core.SurveyQuestionOption{
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[4],
+					QuestionID: q5,
 					Position:   0,
 					Label:      "AI-powered bid and estimate generator",
 					Value:      "ai bid & estimate generator",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[4],
+					QuestionID: q5,
 					Position:   1,
 					Label:      "Expense and tax tracking per property",
 					Value:      "property expense & tax tracking",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[4],
+					QuestionID: q5,
 					Position:   2,
 					Label:      "Tenant payment portal",
 					Value:      "tenant payment portal",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[4],
+					QuestionID: q5,
 					Position:   3,
 					Label:      "Maintenance request tracking",
 					Value:      "maintenance request tracking",
@@ -606,28 +621,28 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 				{
 					ID: uuid.New(),
 
-					QuestionID: questionIDs[4],
+					QuestionID: q5,
 					Position:   4,
 					Label:      "Property listing and walkthrough scheduling",
 					Value:      "property listing & walkthrough scheduling",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[4],
+					QuestionID: q5,
 					Position:   5,
 					Label:      "Tax export reports (Schedule E, CSV, PDF)",
 					Value:      "tax export reports: schedule e, csv, pdf",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[4],
+					QuestionID: q5,
 					Position:   6,
 					Label:      "Contractor/job management board",
 					Value:      "contractor / job management board",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[4],
+					QuestionID: q5,
 					Position:   7,
 					Label:      "Other",
 					Value:      "other:",
@@ -635,7 +650,7 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			},
 		},
 		{
-			ID:           questionIDs[5],
+			ID:           q6,
 			SurveyID:     surveyID,
 			Position:     5,
 			QuestionType: "check",
@@ -645,28 +660,28 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			Options: []core.SurveyQuestionOption{
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[5],
+					QuestionID: q6,
 					Position:   0,
 					Label:      "Very likely",
 					Value:      "very likely",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[5],
+					QuestionID: q6,
 					Position:   1,
 					Label:      "Somewhat likely",
 					Value:      "somewhat likely",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[5],
+					QuestionID: q6,
 					Position:   2,
 					Label:      "Not sure yet",
 					Value:      "not sure yet",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[5],
+					QuestionID: q6,
 					Position:   3,
 					Label:      "Unlikely",
 					Value:      "unlikely",
@@ -674,7 +689,7 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			},
 		},
 		{
-			ID:           questionIDs[6],
+			ID:           q7,
 			SurveyID:     surveyID,
 			QuestionType: "text",
 			Position:     6,
@@ -683,7 +698,7 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			Active:       true,
 		},
 		{
-			ID:           questionIDs[7],
+			ID:           q8,
 			SurveyID:     surveyID,
 			QuestionType: "text",
 			Position:     7,
@@ -692,7 +707,7 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			Active:       true,
 		},
 		{
-			ID:           questionIDs[8],
+			ID:           q9,
 			SurveyID:     surveyID,
 			QuestionType: "check",
 			Position:     8,
@@ -702,21 +717,21 @@ func getQuestions(surveyID uuid.UUID) []core.Question {
 			Options: []core.SurveyQuestionOption{
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[8],
+					QuestionID: q9,
 					Position:   0,
 					Label:      "Yes - keep me on the early access list",
 					Value:      "yes keep me on list",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[8],
+					QuestionID: q9,
 					Position:   1,
 					Label:      "Maybe later",
 					Value:      "maybe later",
 				},
 				{
 					ID:         uuid.New(),
-					QuestionID: questionIDs[8],
+					QuestionID: q9,
 					Position:   2,
 					Label:      "No thanks",
 					Value:      "no thanks",

@@ -49,6 +49,7 @@ func (s SurveyHandler) RegisterRoutes(m *http.ServeMux) {
 }
 
 func (s SurveyHandler) HandleGetSurvey(w http.ResponseWriter, r *http.Request) error {
+	log.Printf("hit get survey api")
 	if err := r.Context().Err(); err != nil {
 		return APIErr{Status: http.StatusRequestTimeout, Err: err}
 	}
@@ -58,8 +59,13 @@ func (s SurveyHandler) HandleGetSurvey(w http.ResponseWriter, r *http.Request) e
 		if err == pgsql.ErrNoRecords {
 			return request.WriteJSON(w, http.StatusOK, request.JSON{"survey": ""})
 		}
-		log.Printf("get survey error %v", err)
 		return APIErr{Status: http.StatusRequestTimeout, Err: err}
+	}
+
+	if survey == nil {
+		return request.WriteJSON(w, http.StatusOK, request.JSON{
+			"survey": nil,
+		})
 	}
 
 	response := converter.MakeSurveyResponse(*survey)
@@ -71,6 +77,7 @@ func (s SurveyHandler) HandleGetSurvey(w http.ResponseWriter, r *http.Request) e
 }
 
 func (s SurveyHandler) HandleSurveyResponse(w http.ResponseWriter, r *http.Request) error {
+	log.Printf("handle survey response api")
 	if err := r.Context().Err(); err != nil {
 		return APIErr{Status: http.StatusRequestTimeout, Err: err}
 	}

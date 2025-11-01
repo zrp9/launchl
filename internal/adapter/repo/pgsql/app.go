@@ -50,6 +50,9 @@ func (f AppRepo) GetFeature(ctx context.Context, id string) (*core.Feature, erro
 func (f AppRepo) GetAllFeatures(ctx context.Context, page repo.Pager) ([]core.Feature, error) {
 	var features []core.Feature
 	if err := f.repo.BnDB().NewSelect().Model(&features).Offset(page.Page).Limit(page.Limit).Scan(ctx, &features); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoRecords
+		}
 		return nil, err
 	}
 
@@ -128,7 +131,7 @@ func (f AppRepo) GetRoleByID(ctx context.Context, id string) (core.Role, error) 
 
 func (f AppRepo) CreateSurvey(ctx context.Context, survey *core.Survey, questions []core.Question, options []core.SurveyQuestionOption) (*core.Survey, error) {
 	if err := f.repo.BnDB().RunInTx(ctx, &sql.TxOptions{ReadOnly: false}, func(ctx context.Context, tx bun.Tx) error {
-		if err := tx.NewInsert().Model(&survey).Scan(ctx, &survey); err != nil {
+		if err := tx.NewInsert().Model(survey).Scan(ctx, survey); err != nil {
 			return err
 		}
 
@@ -145,4 +148,26 @@ func (f AppRepo) CreateSurvey(ctx context.Context, survey *core.Survey, question
 	}
 
 	return survey, nil
+}
+
+func (f AppRepo) CreateTestimonials(ctx context.Context, testimonials []core.Testimonial) error {
+	if err := f.repo.BnDB().RunInTx(ctx, &sql.TxOptions{ReadOnly: false}, func(ctx context.Context, tx bun.Tx) error {
+		if err := tx.NewInsert().Model(&testimonials).Scan(ctx, &testimonials); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (f AppRepo) GetTestimonials(ctx context.Context) ([]core.Testimonial, error) {
+	var testys []core.Testimonial
+	if err := f.repo.BnDB().NewSelect().Model(&testys).Scan(ctx, &testys); err != nil {
+		return nil, err
+	}
+
+	return testys, nil
 }

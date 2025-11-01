@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	surveyKey = "survey"
+	surveyKey = "x-serv"
 )
 
 type SurveyService struct {
@@ -39,16 +39,18 @@ func (s SurveyService) GetSurvey(ctx context.Context) (*core.Survey, error) {
 	}
 
 	var survey *core.Survey
-	err = json.Unmarshal([]byte(sCache), &survey)
-	if err != nil {
-		s.logger.MustTraceErr(err)
+	if sCache != "" {
+		err = json.Unmarshal([]byte(sCache), &survey)
+		if err != nil {
+			s.logger.MustTraceErr(err)
+		}
+
+		if survey != nil {
+			return survey, nil
+		}
 	}
 
-	if survey != nil {
-		return survey, nil
-	}
-
-	if survey, err = s.repo.GetActiveSurvey(ctx); survey != nil && err != nil {
+	if survey, err = s.repo.GetActiveSurvey(ctx); err != nil {
 		return nil, err
 	}
 

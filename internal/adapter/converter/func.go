@@ -67,9 +67,9 @@ func MakeSurveyResponse(data core.Survey) dto.SurveyResponse {
 		Version: data.Version,
 	}
 
-	questions := make([]dto.QuestionResponse, len(data.Questions))
+	questions := make([]dto.QuestionResponse, 0, len(data.Questions))
 	for _, q := range data.Questions {
-		options := make([]dto.OptionResponse, len(q.Options))
+		options := make([]dto.OptionResponse, 0, len(q.Options))
 		for _, o := range q.Options {
 			options = append(options, dto.OptionResponse{
 				ID:         o.ID,

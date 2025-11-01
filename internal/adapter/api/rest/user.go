@@ -61,6 +61,7 @@ func (u UserHandler) HandleLogging(hn APIHandler) http.HandlerFunc {
 }
 
 func (u UserHandler) HandleSubscribe(w http.ResponseWriter, r *http.Request) error {
+	log.Printf("subscrib api")
 	if err := r.Context().Err(); err != nil {
 		return ReturnErr(http.StatusRequestTimeout, request.ErrReqTimeout)
 	}
@@ -89,6 +90,7 @@ func (u UserHandler) HandleSubscribe(w http.ResponseWriter, r *http.Request) err
 }
 
 func (u UserHandler) HandleDeleteUser(w http.ResponseWriter, r *http.Request) error {
+	log.Printf("del usr api")
 	if err := r.Context().Err(); err != nil {
 		return ReturnErr(http.StatusRequestTimeout, request.ErrReqTimeout)
 	}
@@ -111,6 +113,7 @@ func (u UserHandler) HandleDeleteUser(w http.ResponseWriter, r *http.Request) er
 }
 
 func (u UserHandler) HandleCheckQueue(w http.ResponseWriter, r *http.Request) error {
+	log.Printf("check que api")
 	if err := r.Context().Err(); err != nil {
 		return APIErr{Status: http.StatusGatewayTimeout, Err: err}
 	}
@@ -133,6 +136,7 @@ func (u UserHandler) HandleCheckQueue(w http.ResponseWriter, r *http.Request) er
 }
 
 func (u UserHandler) HandleSubscribeRefered(w http.ResponseWriter, r *http.Request) error {
+	log.Printf("subscribe refered api")
 	if err := r.Context().Err(); err != nil {
 		return APIErr{Status: http.StatusGatewayTimeout, Err: err}
 	}
@@ -161,6 +165,7 @@ func (u UserHandler) HandleSubscribeRefered(w http.ResponseWriter, r *http.Reque
 }
 
 func (u UserHandler) HandleGetReferLink(w http.ResponseWriter, r *http.Request) error {
+	log.Printf("refer link api")
 	if err := r.Context().Err(); err != nil {
 		return APIErr{Status: http.StatusRequestTimeout, Err: err}
 	}

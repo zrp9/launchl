@@ -16,6 +16,7 @@ create table if not exists features(
 	title varchar(150) not null,
 	name varchar(150) not null,
 	details	text not null,
+	img varchar(255) not null,
 	quick_description text not null,
 	created_at timestamptz not null default current_timestamp,
 	updated_at timestamptz not null default current_timestamp
@@ -53,6 +54,8 @@ create table if not exists surveys (
 	version varchar(75) not null,
 	name varchar(255) not null,
 	active boolean not null default false,
+	intro varchar(255) not null,
+	closing_text varchar(255) not null,
 	created_at timestamptz not null default current_timestamp,
 	updated_at timestamptz not null default current_timestamp
 );
@@ -64,18 +67,20 @@ create table if not exists survey_questions (
 	prompt text not null,
 	position integer not null default 0,
 	required boolean not null default true,
-	metadata jsonb not null default '{}'::jsonb,
+	meta_data jsonb not null default '{}'::jsonb,
 	active boolean not null default false,
 	created_at timestamptz not null default current_timestamp,
 	updated_at timestamptz not null default current_timestamp
 );
 
-create table if not exists survey_question_option (
+create table if not exists survey_question_options (
 	id uuid default uuid_generate_v4() primary key,
 	question_id uuid not null references survey_questions(id) on delete cascade,
 	position integer not null default 0,
 	label varchar(255) not null,
-	value varchar(255) null
+	value varchar(255) null,
+	created_at timestamptz not null default current_timestamp,
+	updated_at timestamptz not null default current_timestamp
 );
 
 create table if not exists survey_responses (
@@ -83,12 +88,27 @@ create table if not exists survey_responses (
 	question_id uuid not null references survey_questions(id) on delete cascade,
 	user_id uuid not null references users(id) on delete cascade,
 	--unique (question_id, user_id),
-	option_id uuid not null references survey_question_option(id),
-	written_response text null
+	option_id uuid not null references survey_question_options(id),
+	written_response text null,
+	created_at timestamptz not null default current_timestamp,
+	updated_at timestamptz not null default current_timestamp
 );
 
 create table if not exists referals (
 	id uuid default uuid_generate_v4() primary key,
 	referer_id uuid not null references users(id) on delete cascade,
 	referee_id uuid not null references users(id) on delete cascade
+);
+
+create table if not exists testimonials (
+	id uuid default uuid_generate_v4() primary key,
+	name varchar(150) not null unique,
+	role varchar(150) not null,
+	rating integer not null,
+	title varchar(100) not null,
+	quote varchar(255) not null,
+	avatar varchar(255) null,
+	date timestamptz not null default current_timestamp,
+	created_at timestamptz not null default current_timestamp,
+	updated_at timestamptz not null default current_timestamp
 );

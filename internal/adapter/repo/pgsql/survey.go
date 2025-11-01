@@ -30,11 +30,10 @@ func (s SurveyRepo) GetActiveSurvey(ctx context.Context) (*core.Survey, error) {
 		Relation("Questions", func(sq *bun.SelectQuery) *bun.SelectQuery {
 			return sq.Where("sq.active = TRUE").OrderExpr("sq.position ASC")
 		}).
-		Relation("Questions.Options", func(sqo *bun.SelectQuery) *bun.SelectQuery { return sqo.Where("sqo.position ASC") }).
+		Relation("Questions.Options", func(sqo *bun.SelectQuery) *bun.SelectQuery { return sqo.Order("position ASC") }).
 		Where("? = ?", bun.Ident("active"), true).
 		Limit(1).
 		Scan(ctx)
-	log.Println("ran query ")
 	if err != nil {
 		log.Println("query err here ")
 		if err == sql.ErrNoRows {
@@ -44,7 +43,6 @@ func (s SurveyRepo) GetActiveSurvey(ctx context.Context) (*core.Survey, error) {
 		return nil, err
 	}
 
-	log.Println("returning survey")
 	return &survey, nil
 }
 

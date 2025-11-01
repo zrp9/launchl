@@ -44,7 +44,7 @@ type Question struct {
 	Position     int                    `bun:"type:integer,notnull,nullzero,default:0" json:"position" validate:"numeric"`
 	Active       bool                   `bun:"type:boolean,notnull,nullzero,default:false" json:"active" validate:"boolean"`
 	Required     bool                   `bun:"type:boolean,notnull,nullzero,default:true" json:"required" validate:"boolean"`
-	MetaData     json.RawMessage        `bun:"type:jsonb,notnull,nullzero" json:"metaData" validate:"json"`
+	MetaData     json.RawMessage        `bun:"type:jsonb,nullzero" json:"metaData" validate:"json"`
 	CreatedAt    time.Time              `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"createdAt"`
 	UpdatedAt    time.Time              `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"updatedAt"`
 }
@@ -56,7 +56,9 @@ type SurveyQuestionOption struct {
 	Position      int       `bun:"type:integer,notnull,nullzero,default:0" json:"position" validate:"numeric"`
 	Label         string    `bun:"type:varchar(255),notnull,nullzero" json:"label" validate:"alphanum"`
 	// value can be empty to support text responses
-	Value string `bun:"type:varchar(255),notnull,nullzero" json:"value" validate:"aplhanum"`
+	Value     string    `bun:"type:varchar(255),notnull,nullzero" json:"value" validate:"aplhanum"`
+	CreatedAt time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"createdAt"`
+	UpdatedAt time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"updatedAt"`
 }
 
 type SurveyResponse struct {
@@ -69,7 +71,9 @@ type SurveyResponse struct {
 	User           *User                 `bun:"rel:belongs-to,join:user_id=id" json:"user"`
 	QuestionOption *SurveyQuestionOption `bun:"rel:belongs-to,join:option_id=id" json:"questionOption"`
 	// WrittenResponse holds the response to text questions
-	WrittenResponse string `bun:"type:text,nullzero" json:"writtenResponse,omitempty" validate:"alphanum"`
+	WrittenResponse string    `bun:"type:text,nullzero" json:"writtenResponse,omitempty" validate:"alphanum"`
+	CreatedAt       time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"createdAt"`
+	UpdatedAt       time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"updatedAt"`
 }
 
 // TODO: add the object like point for options for db scanning/inserting

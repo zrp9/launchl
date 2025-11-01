@@ -33,7 +33,7 @@ type JSON map[string]any
 
 type Page struct {
 	Number int `validate:"numeric,gte=1,lte=10"`
-	Limit  int `validate:"numeric,gte=1,lte=10"`
+	Limit  int `validate:"numeric,gte=1,lte=15"`
 }
 
 type AuthHeaderErr struct {

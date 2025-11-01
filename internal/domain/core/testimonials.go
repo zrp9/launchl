@@ -15,8 +15,8 @@ type Testimonial struct {
 	Role      string    `bun:"type:varchar(150),notnull,nullzero" json:"role" validate:"ascii"`
 	Rating    int       `bun:"type:integer,notnull" json:"rating" validate:"numeric"`
 	Title     string    `bun:"type:varchar(100),notnull" json:"title" validate:"alpha,min=1,max=150"`
-	Quote     string    `bun:"type:varchar(100),notnull" json:"quote" validate:"alpha,min=1,max=150"`
-	Avatar    string    `bun:"type:varchar(150),notnull" json:"avatar"`
+	Quote     string    `bun:"type:varchar(255),notnull" json:"quote" validate:"alpha,min=1,max=150"`
+	Avatar    string    `bun:"type:varchar(255),nullzero" json:"avatar"`
 	Date      time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"date"`
 	CreatedAt time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"createdAt"`
 	UpdatedAt time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"updatedAt"`
