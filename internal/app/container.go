@@ -115,7 +115,7 @@ func (c Container) createService(cache valkaree.Cache, stream valkaree.Stream, n
 		return service.NewUserService(userRepo, *c.logger, cache, stream), nil
 	case "survey":
 		surveyRepo := pgsql.NewSurveyRepo(c.store)
-		return service.NewSurveyService(surveyRepo, cache, *c.logger), nil
+		return service.NewSurveyService(surveyRepo, cache, stream, *c.logger), nil
 	case "app":
 		appRepo := pgsql.NewAppRepo(c.store)
 		return service.NewAppService(appRepo, cache), nil

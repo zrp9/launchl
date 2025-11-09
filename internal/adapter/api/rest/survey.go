@@ -95,12 +95,12 @@ func (s SurveyHandler) HandleSurveyResponse(w http.ResponseWriter, r *http.Reque
 		return APIErr{Status: http.StatusBadRequest, Err: errors.New(strings.Join(errs, ","))}
 	}
 
-	sResponse, err := converter.ConvertSurveyAnwsers(payload)
+	sResponse, err := converter.ConvertSurveyAnwsers(payload.Answers)
 	if err != nil {
 		return APIErr{Status: http.StatusBadRequest, Err: err}
 	}
 
-	if err := s.s.CreateSurveyResponse(r.Context(), sResponse); err != nil {
+	if err := s.s.CreateSurveyResponse(r.Context(), payload.UserEmail, sResponse); err != nil {
 		s.logger.MustError(err)
 	}
 

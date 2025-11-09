@@ -20,11 +20,15 @@ type UserCreateRequest struct {
 type SurveyAnwser struct {
 	QuestionID    string `json:"questionId" validate:"required,uuid4"`
 	UserID        string `json:"userId" validate:"required,uuid4"`
+	UserEmail     string `json:"userEmail" validate:"required,ascii"`
 	OptionID      string `json:"optionId" validate:"required,uuid4"`
 	WrittenAnwser string `json:"writtenAnwser" validate:"alphanum"`
 }
 
-type SurveyAnwsers = []SurveyAnwser
+type SurveyAnwsers struct {
+	Answers   []SurveyAnwser
+	UserEmail string `json:"userEmail" validate:"required,ascii"`
+}
 
 type SurveyResponse struct {
 	ID        uuid.UUID          `json:"id"`

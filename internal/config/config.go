@@ -70,10 +70,28 @@ type ValkeyCfg struct {
 	Port string
 }
 
+type ValkeyStreamCfg struct {
+	Group    string
+	Consumer string
+	Block    time.Duration
+	Count    int64
+}
+
+type VkNotifierCfg struct {
+	NotificationType string
+	ClientCfg        ValkeyCfg
+	StreamCfg        ValkeyStreamCfg
+	SenderCfg        EmailCfg
+}
+
 type EmailCfg struct {
 	Sender          string
-	Attempts        int64
+	Host            string
+	Username        string
+	Token           string
+	Port            int
 	TemplateVersion int
+	Attempts        int64
 }
 
 type JWTCfg struct {
@@ -180,10 +198,40 @@ func LoadValkey() ValkeyCfg {
 	}
 }
 
+func LoadVkENotifierConfig() VkNotifierCfg {
+	_ = initializeEnv()
+	return VkNotifierCfg{
+		NotificationType: "email",
+		ClientCfg: ValkeyCfg{
+			Host: mustGetEnv("VALKEY_HOST"),
+			Port: mustGetEnv("VALKEY_PORT"),
+		},
+		StreamCfg: ValkeyStreamCfg{
+			Group:    mustGetEnv("VALKEY_EMAIL_GROUP"),
+			Consumer: mustGetEnv("VALKEY_EMAIL_CONSUMER"),
+			Block:    getDurationEnv("VALKEY_EMAIL_BLOCK", 500),
+			Count:    getInt64Env("VALKEY_EMAIL_COUNT", 1000),
+		},
+		SenderCfg: EmailCfg{
+			Sender:          mustGetEnv("EMAIL_SENDER"),
+			Username:        mustGetEnv("MAILTRAP_USER"),
+			Host:            mustGetEnv("MAILTRAP_HOST"),
+			Token:           mustGetEnv("MAILTRAP_TOKEN"),
+			Port:            getIntEnv("EMAIL_PORT", 587),
+			Attempts:        getInt64Env("EMAIL_ATTEMPTS", 1),
+			TemplateVersion: getIntEnv("EMAIL_TEMPLATE_VERSION", 1),
+		},
+	}
+}
+
 func LoadEmailConfig() EmailCfg {
 	_ = initializeEnv()
 	return EmailCfg{
 		Sender:          mustGetEnv("EMAIL_SENDER"),
+		Username:        mustGetEnv("MAILTRAP_USER"),
+		Host:            mustGetEnv("MAILTRAP_HOST"),
+		Token:           mustGetEnv("MAILTRAP_TOKEN"),
+		Port:            getIntEnv("EMAIL_PORT", 587),
 		Attempts:        getInt64Env("EMAIL_ATTEMPTS", 1),
 		TemplateVersion: getIntEnv("EMAIL_TEMPLATE_VERSION", 1),
 	}

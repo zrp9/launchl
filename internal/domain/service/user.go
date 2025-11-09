@@ -16,11 +16,8 @@ import (
 	"github.com/zrp9/launchl/internal/eml"
 )
 
-var (
-	notificationType   = "email"
-	notificationTarget = "email-consumer"
-	notificationSrc    = "user-service"
-)
+var notificationSrc = "user-service"
+var emailNotificationCfg = config.LoadVkENotifierConfig()
 
 type UserService struct {
 	repo   pgsql.UserRepo
@@ -77,12 +74,12 @@ func (u UserService) CreateUser(ctx context.Context, usr *core.User) (*core.User
 			}
 		}
 
-		data, err := u.createEmailPayload(usr, "welcome", "Welcome to launch list")
+		data, err := dto.CreateEmailPayload(usr.Email, "Welcome to launch list", "welcome", emailNotificationCfg.SenderCfg.TemplateVersion)
 		if err != nil {
 			u.logger.MustError(err)
 		}
 
-		if _, err := u.stream.WriteEvent(ctx, notificationType, notificationTarget, notificationSrc, data); err != nil {
+		if _, err := u.stream.WriteEvent(ctx, emailNotificationCfg.NotificationType, emailNotificationCfg.StreamCfg.Group, notificationSrc, data); err != nil {
 			u.logger.MustTrace(fmt.Sprintf("failed to write event to stream %v", err))
 		}
 		u.logger.MustDebug("email notification wrote to stream successfully")
@@ -160,7 +157,6 @@ func (u UserService) createEmailPayload(usr *core.User, notificationType, subjec
 	to := []string{usr.Email}
 	evnt := dto.EmailDTO{
 		To:              to,
-		From:            emailCfg.Sender,
 		Template:        notificationType,
 		TemplateVersion: strconv.Itoa(emailCfg.TemplateVersion),
 		Subject:         subject,

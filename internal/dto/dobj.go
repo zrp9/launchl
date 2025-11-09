@@ -2,8 +2,10 @@
 package dto
 
 import (
+	"encoding/json"
 	"errors"
 	"mime/multipart"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -78,9 +80,25 @@ type SignupDto struct {
 
 type EmailDTO struct {
 	To              []string       `json:"to"`
-	From            string         `json:"from"`
 	Data            map[string]any `json:"data,omitempty"`
 	Template        string         `json:"template"`
 	TemplateVersion string         `json:"templateVersion,omitempty"`
 	Subject         string         `json:"subject,omitempty"`
+}
+
+func CreateEmailPayload(toAddr, subject, notificationType string, tmplVersion int) ([]byte, error) {
+	to := []string{toAddr}
+	evnt := EmailDTO{
+		To:              to,
+		Template:        notificationType,
+		TemplateVersion: strconv.Itoa(tmplVersion),
+		Subject:         subject,
+	}
+
+	data, err := json.Marshal(evnt)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }

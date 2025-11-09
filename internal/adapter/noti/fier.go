@@ -3,15 +3,13 @@ package noti
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/zrp9/launchl/internal/adapter/cache/valkaree"
 	"github.com/zrp9/launchl/internal/domain"
 	"github.com/zrp9/launchl/internal/domain/core"
 )
-
-type TmpSender struct {
-}
 
 type EmailJob struct {
 	core.Email
@@ -23,28 +21,23 @@ type EmailJob struct {
 	TemplateVersion string `json:"templateVersion,omitempty"`
 }
 
-func (t TmpSender) Send(ctx context.Context, to []string, subject, html, txt string) error {
-	return nil
-}
-
-type Consumer struct {
+type Notifier struct {
 	reader        valkaree.StreamReader
 	emailRenderer *Renderer
-	sender        TmpSender
-	// emailSender
-	sendRetries int
-	expBackoff  int
+	sender        Sender
+	sendRetries   int
+	expBackoff    int
 }
 
-func NewNotiConsumer(sreader valkaree.StreamReader, erenderer *Renderer) Consumer {
-	return Consumer{
-		reader:        sreader,
-		emailRenderer: erenderer,
-		//email sender
+func NewNotifer(sr valkaree.StreamReader, ns Sender, r *Renderer) Notifier {
+	return Notifier{
+		reader:        sr,
+		emailRenderer: r,
+		sender:        ns,
 	}
 }
 
-func (c Consumer) Run(ctx context.Context) error {
+func (c Notifier) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -72,8 +65,9 @@ func (c Consumer) Run(ctx context.Context) error {
 	}
 }
 
-func (c Consumer) handle(ctx context.Context, m domain.Message) error {
+func (c Notifier) handle(ctx context.Context, m domain.Message) error {
 	job, err := parseEmailJob(m)
+	log.Printf("job parsed %v", job)
 	if err != nil {
 		return err
 	}

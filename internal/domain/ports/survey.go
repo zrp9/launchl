@@ -26,7 +26,7 @@ type ISurveyRepo interface {
 
 type ISurveyService interface {
 	GetSurvey(ctx context.Context) (*core.Survey, error)
-	CreateSurveyResponse(ctx context.Context, respones core.SurveyResponse) error
+	CreateSurveyResponse(ctx context.Context, respondee string, responses core.SurveyResponse) error
 }
 
 type IAdminSurveyService interface {
