@@ -3,10 +3,13 @@ package pgsql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/uptrace/bun"
 	"github.com/zrp9/launchl/internal/domain/core"
+	"github.com/zrp9/launchl/internal/hash"
 )
 
 type SurveyRepo struct {
@@ -149,8 +152,41 @@ func (s SurveyRepo) GetAllSurveyResponses(ctx context.Context) ([]*core.SurveyRe
 	return responses, nil
 }
 
-func (s SurveyRepo) CreateSurveyResponse(ctx context.Context, responses []core.SurveyResponse) error {
-	if err := s.repo.BnDB().RunInTx(ctx, &sql.TxOptions{Isolation: 0, ReadOnly: false}, func(ctx context.Context, tx bun.Tx) error {
+func (s SurveyRepo) CreateSurveyResponse(ctx context.Context, user *core.User, responses []core.SurveyResponse) error {
+
+	if err := s.repo.BnDB().RunInTx(ctx, &sql.TxOptions{ReadOnly: false}, func(ctx context.Context, tx bun.Tx) error {
+		if err := tx.NewSelect().Model(user).Where("email = ?", user.Email).Scan(ctx); err != nil {
+
+			if err != sql.ErrNoRows {
+				return err
+			}
+
+			var role core.Role
+			err = tx.NewSelect().Model(&role).Where("? = ?", bun.Ident("name"), "subscriber").Scan(ctx, &role)
+			if err != nil {
+				return err
+			}
+
+			user.SetRoleID(role.ID)
+			usrCount, err := tx.NewSelect().Model((*core.User)(nil)).Count(ctx)
+			if err != nil {
+				return err
+			}
+
+			user.SetQuePosition(int64(usrCount) + 1)
+			key := fmt.Sprintf("%vlessor-%v", user.Email, time.Now())
+			hashLink := hash.GenerateHashLink(key)
+			user.SetRefLink(hashLink)
+			err = tx.NewInsert().Model(user).Scan(ctx, user)
+			if err != nil {
+				return err
+			}
+		}
+
+		for i := range responses {
+			responses[i].UserID = user.ID
+		}
+
 		if _, err := tx.NewInsert().Model(&responses).Exec(ctx); err != nil {
 			return err
 		}

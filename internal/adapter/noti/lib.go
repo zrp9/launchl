@@ -50,6 +50,23 @@ func TextFuncMap() map[string]any {
 	}
 }
 
+func parseEventType(m domain.Message) (string, error) {
+	get := func(k string) (string, bool) {
+		for _, f := range m.Values {
+			if f.Name == k {
+				return f.Value, true
+			}
+		}
+		return "", false
+	}
+
+	if s, ok := get("eventType"); ok {
+		return s, nil
+	}
+
+	return "", nil
+}
+
 func parseEmailJob(m domain.Message) (EmailJob, error) {
 	// m.Values is []domain.Field { Name, Value }
 	get := func(k string) (string, bool) {
@@ -95,7 +112,7 @@ func parseEmailJob(m domain.Message) (EmailJob, error) {
 		return EmailJob{}, errors.New("invalid email job: missing to/template/subject")
 	}
 	if job.Data == nil {
-		job.Data = map[string]any{}
+		job.Data = json.RawMessage{}
 	}
 	return job, nil
 }
@@ -126,4 +143,14 @@ func trimSpace(s string) string {
 		return ""
 	}
 	return s[i : j+1]
+}
+
+func mapToStruct[T any](m map[string]any) (T, error) {
+	var out T
+	b, err := json.Marshal(m)
+	if err != nil {
+		return out, err
+	}
+	err = json.Unmarshal(b, &out)
+	return out, err
 }

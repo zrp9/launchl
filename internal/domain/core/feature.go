@@ -10,7 +10,7 @@ import (
 
 type AccessListQueue struct {
 	bun.BaseModel `bun:"table:access_queue,alias:aq"`
-	ID            uuid.UUID `bun:",pk,type:uuid" json:"id" validate:"uuidv4"`
+	ID            uuid.UUID `bun:",pk,type:uuid,nullzero" json:"id" validate:"uuidv4"`
 	CurrentCount  int64     `bun:"type:bigint,notnull,nullzero,default=0" json:"currentCount" validate:"numeric,min=0"`
 }
 

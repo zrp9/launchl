@@ -1,8 +1,10 @@
 drop table referals;
-drop table survey_responses;
+drop table user_survey_responses;
 drop table survey_question_options;
 drop table survey_questions;
 drop table surveys;
+drop index idx_usr_email;
+drop index idx_usr_role_id;
 drop table users;
 drop table roles;
 drop table features;

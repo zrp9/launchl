@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/zrp9/launchl/internal/adapter/cache/valkaree"
 	"github.com/zrp9/launchl/internal/adapter/repo/pgsql"
@@ -39,7 +40,7 @@ func (a AppService) CreateFeatures(ctx context.Context, feats []*core.Feature) e
 		return err
 	}
 
-	if err = a.cache.Set(ctx, "features", string(fs)); err != nil {
+	if err = a.cache.Set(ctx, "features", string(fs), valkaree.WithTTL(10*time.Minute)); err != nil {
 		return err
 	}
 
@@ -82,7 +83,7 @@ func (a AppService) GetFeatures(ctx context.Context, pg, limit int) ([]core.Feat
 		return nil, err
 	}
 
-	if err = a.cache.Set(ctx, fmt.Sprintf("ll-features:%v:%v", pg, limit), string(jfeats)); err != nil {
+	if err = a.cache.Set(ctx, fmt.Sprintf("ll-features:%v:%v", pg, limit), string(jfeats), valkaree.WithTTL(10*time.Minute)); err != nil {
 		return nil, err
 	}
 
@@ -114,7 +115,7 @@ func (a AppService) GetRole(ctx context.Context, name string) (core.Role, error)
 		return core.Role{}, err
 	}
 
-	if err := a.cache.Set(ctx, fmt.Sprintf("role:%v", name), string(jrole)); err != nil {
+	if err := a.cache.Set(ctx, fmt.Sprintf("role:%v", name), string(jrole), valkaree.WithTTL(10*time.Minute)); err != nil {
 		return core.Role{}, err
 	}
 

@@ -7,27 +7,37 @@ import (
 	"github.com/google/uuid"
 )
 
+type UserSubscribeRequest struct {
+	Email     string `json:"email" validate:"email,required"`
+	FirstName string `json:"firstName" validate:"required,max=150"`
+	LastName  string `json:"lastName" validate:"required,max=150"`
+}
+
 type UserCreateRequest struct {
-	Email string `json:"email" validate:"email,required"`
+	Email     string `json:"email" validate:"email,required"`
+	FirstName string `json:"firstName" validate:"required,max=150"`
+	LastName  string `json:"lastName" validate:"required,max=150"`
 	// Username is generated on usr type
 	Phone       string `json:"phone" validate:"ascii,min=12,max=12"`
-	FirstName   string `json:"firstName" validate:"required,max=150"`
-	LastName    string `json:"lastName" validate:"required,max=150"`
 	WouldUse    bool   `json:"wouldUse" validate:"boolean"`
 	CompanyName string `json:"companyName" validate:"alphanum"`
 }
 
 type SurveyAnwser struct {
-	QuestionID    string `json:"questionId" validate:"required,uuid4"`
-	UserID        string `json:"userId" validate:"required,uuid4"`
-	UserEmail     string `json:"userEmail" validate:"required,ascii"`
-	OptionID      string `json:"optionId" validate:"required,uuid4"`
-	WrittenAnwser string `json:"writtenAnwser" validate:"alphanum"`
+	QuestionID      string `json:"questionId" validate:"required,uuid4"`
+	QuestionType    string `json:"questionType" validate:"oneof='text' 'multi-check' 'check' 'drop-down'"`
+	OptionID        string `json:"optionId" `
+	OptionValue     string `json:"optionValue"`
+	Prompt          string `json:"prompt" validate:"ascii"`
+	WrittenResponse string `json:"writtenResponse" validate:"alphanum"`
 }
 
 type SurveyAnwsers struct {
-	Answers   []SurveyAnwser
-	UserEmail string `json:"userEmail" validate:"required,ascii"`
+	Answers     []SurveyAnwser `json:"anwsers" validate:"required"`
+	UserEmail   string         `json:"userEmail" validate:"required,ascii"`
+	CompanyName string         `json:"companyName" validate:"required,ascii"`
+	FirstName   string         `json:"firstName" validate:"alphanum"`
+	LastName    string         `json:"lastName" validate:"required,alphanum"`
 }
 
 type SurveyResponse struct {

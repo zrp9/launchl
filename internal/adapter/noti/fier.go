@@ -30,6 +30,7 @@ type Notifier struct {
 }
 
 func NewNotifer(sr valkaree.StreamReader, ns Sender, r *Renderer) Notifier {
+	log.Printf("Notifier using StreamReader type: %T\n", sr)
 	return Notifier{
 		reader:        sr,
 		emailRenderer: r,
@@ -38,41 +39,50 @@ func NewNotifer(sr valkaree.StreamReader, ns Sender, r *Renderer) Notifier {
 }
 
 func (c Notifier) Run(ctx context.Context) error {
+	log.Printf("Notifier using StreamReader type: %T\n", c.reader)
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			msgs, err := c.reader.ReadGroup(ctx, 0)
+			events, err := c.reader.ReadGroup(ctx, c.reader.Count())
+			log.Printf("email worker reading msg %v", events)
 			if err != nil {
+				log.Printf("error durring read group %v", err)
 				time.Sleep(200 * time.Millisecond)
 				continue
 			}
-			if len(msgs) == 0 {
+			if len(events) == 0 {
 				// xreadgroup timeout - loop again
 				continue
 			}
 
-			for _, m := range msgs {
-				if err := c.handle(ctx, m); err != nil {
+			for _, e := range events {
+				if err := c.handle(ctx, e); err != nil {
+					log.Printf("failed to handle msg %v", err)
 					// ignore for now and will be picked back up maybe eventually write to failed stream
 					continue
 				}
 
-				_, _ = c.reader.AckDel(ctx, m.ID)
+				_, _ = c.reader.AckDel(ctx, e.ID)
 			}
 		}
 	}
 }
 
-func (c Notifier) handle(ctx context.Context, m domain.Message) error {
-	job, err := parseEmailJob(m)
-	log.Printf("job parsed %v", job)
+func (c Notifier) handle(ctx context.Context, msg domain.Message) error {
+	job, err := parseEmailJob(msg)
 	if err != nil {
 		return err
 	}
 
-	html, text, err := c.emailRenderer.Render(job.Template, job.Data)
+	// eventType, err := parseEventType(msg)
+	// log.Printf("event type parsed %v", eventType)
+	// if err != nil {
+	// 	return err
+	// }
+
+	html, text, err := c.emailRenderer.Render(job.Template, job)
 	if err != nil {
 		return err
 	}

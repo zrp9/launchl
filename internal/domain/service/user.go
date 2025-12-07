@@ -5,19 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/zrp9/launchl/internal/adapter/cache/valkaree"
 	"github.com/zrp9/launchl/internal/adapter/log/crane"
+	"github.com/zrp9/launchl/internal/adapter/noti"
 	"github.com/zrp9/launchl/internal/adapter/repo/pgsql"
 	"github.com/zrp9/launchl/internal/config"
 	"github.com/zrp9/launchl/internal/domain/core"
 	"github.com/zrp9/launchl/internal/dto"
-	"github.com/zrp9/launchl/internal/eml"
+	"github.com/zrp9/launchl/internal/hash"
 )
 
 var notificationSrc = "user-service"
-var emailNotificationCfg = config.LoadVkENotifierConfig()
+var streamCfg = config.LoadVkENotifierConfig()
 
 type UserService struct {
 	repo   pgsql.UserRepo
@@ -46,16 +48,9 @@ func (u UserService) CreateUser(ctx context.Context, usr *core.User) (*core.User
 		return nil, err
 	}
 
-	emailBase := eml.StripDomain(usr.Email)
-	if emailBase == "" {
-		return nil, fmt.Errorf("email address required to generate username")
-	}
-
-	usr.Username = emailBase
-
-	if err = usr.Validate(); err != nil {
-		return nil, err
-	}
+	usr.SetRefLink(hash.GenerateHashLink(
+		fmt.Sprintf("%vlessor-%v", usr.Email, time.Now()),
+	))
 
 	nUser, err := u.repo.Create(ctx, usr, "subscriber")
 	if err != nil {
@@ -69,17 +64,27 @@ func (u UserService) CreateUser(ctx context.Context, usr *core.User) (*core.User
 		}
 
 		if cUser != nil {
-			if err = u.cache.Set(ctx, nUser.Email, string(cUser)); err != nil {
+			if err = u.cache.Set(ctx, nUser.Email, string(cUser), valkaree.WithTTL(10*time.Minute)); err != nil {
 				u.logger.MustTrace(fmt.Sprintf("failed to cache user data %v", err))
 			}
 		}
 
-		data, err := dto.CreateEmailPayload(usr.Email, "Welcome to launch list", "welcome", emailNotificationCfg.SenderCfg.TemplateVersion)
+		data, err := dto.CreateEmailPayload(
+			usr.Email,
+			"Welcome to launch list",
+			"welcome",
+			streamCfg.SenderCfg.TemplateVersion,
+			noti.WelcomeData{
+				Name:        fmt.Sprintf("%v %v", usr.FirstName, usr.LastName),
+				ReferralURL: usr.ReferalURL,
+			},
+		)
+
 		if err != nil {
 			u.logger.MustError(err)
 		}
 
-		if _, err := u.stream.WriteEvent(ctx, emailNotificationCfg.NotificationType, emailNotificationCfg.StreamCfg.Group, notificationSrc, data); err != nil {
+		if _, err := u.stream.WriteEvent(ctx, valkaree.Event{EventType: "welcome", Target: streamCfg.StreamCfg.Group, Src: notificationSrc}, data); err != nil {
 			u.logger.MustTrace(fmt.Sprintf("failed to write event to stream %v", err))
 		}
 		u.logger.MustDebug("email notification wrote to stream successfully")
@@ -141,7 +146,7 @@ func (u UserService) GetRefLinkAndPosition(ctx context.Context, usrname string) 
 		if err = json.Unmarshal([]byte(usrCached), &cUsr); err != nil {
 			return "", -1, err
 		}
-		return cUsr.RefLink(), cUsr.Position(), nil
+		return cUsr.ReferalURL, cUsr.Position(), nil
 	}
 
 	usr, err := u.repo.GetByUsername(ctx, usrname)
@@ -149,7 +154,7 @@ func (u UserService) GetRefLinkAndPosition(ctx context.Context, usrname string) 
 		return "", -1, err
 	}
 
-	return usr.RefLink(), usr.Position(), nil
+	return usr.ReferalURL, usr.Position(), nil
 }
 
 func (u UserService) createEmailPayload(usr *core.User, notificationType, subject string) ([]byte, error) {

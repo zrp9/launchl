@@ -4,6 +4,7 @@ package core
 import (
 	"context"
 	"os/user"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
@@ -16,8 +17,22 @@ type Referal struct {
 	RefereeID     uuid.UUID  `bun:"type:uuid,notnull" json:"refereeId" validate:"required,uuidv4"`
 	Referer       *user.User `bun:"rel:belongs-to,join:referer_id=id" json:"referer"`
 	Referee       *user.User `bun:"rel:belongs-to,join:referee_id=id" json:"referee"`
+	CreatedAt     time.Time  `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"createdAt"`
+	UpdatedAt     time.Time  `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"updatedAt"`
 }
 
 type ReferalPort interface {
 	Get(ctx context.Context, id string) (*Referal, error)
+}
+
+var _ bun.BeforeAppendModelHook = (*Referal)(nil)
+
+func (m *Referal) BeforeAppendModel(ctx context.Context, query bun.Query) error {
+	switch query.(type) {
+	case *bun.InsertQuery:
+		m.CreatedAt = time.Now()
+	case *bun.UpdateQuery:
+		m.UpdatedAt = time.Now()
+	}
+	return nil
 }

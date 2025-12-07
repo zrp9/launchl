@@ -3,6 +3,7 @@ package noti
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/zrp9/launchl/internal/adapter/log/crane"
 	gomail "gopkg.in/mail.v2"
@@ -37,11 +38,15 @@ func (s Sender) Send(ctx context.Context, to []string, subject, html, txt string
 	message.SetHeader("Subject", subject)
 	message.SetBody("text/html", html)
 	message.AddAlternative("text/plain", txt)
+	log.Printf("sending to %v", to)
+	log.Printf("from %v", s.source)
+	log.Printf("subject %v", subject)
 
 	dialer := gomail.NewDialer(s.endpoint, s.port, s.user, s.token)
 
 	if err := dialer.DialAndSend(message); err != nil {
 		s.logger.MustError(fmt.Errorf("notification sender failed to send email: %w", err))
+		log.Println("error dailing and sending email")
 		return err
 	}
 	// payload := strings.NewReader(`{\"from\":{\"email\":\"hello@zrp3.dev\",\"name\":\"Mailtrap Test\"},\"to\":[{\"email\":\"zachpalmer1017@gmail.com\"}],\"subject\":\"You are awesome!\",\"text\":\"Congrats for sending test email with Mailtrap!\",\"category\":\"Integration Test\"}`)

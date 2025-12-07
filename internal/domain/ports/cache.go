@@ -8,11 +8,21 @@ import (
 	"github.com/zrp9/launchl/internal/domain"
 )
 
+type CacheOptions struct {
+	TTL     time.Duration
+	KeepTTL bool
+	NX      bool
+	XX      bool
+}
+
+type CacheOption func(*CacheOptions)
+
 type ICacher interface {
 	HealthCheck(ctx context.Context) error
 	Get(ctx context.Context, key string) (string, error)
-	Set(ctx context.Context, key, val string, ttl time.Duration) error
+	Set(ctx context.Context, key, val string, options ...CacheOption) error
 	Delete(ctx context.Context, key string) error
+	DeleteMulti(ctx context.Context, keys []string) error
 }
 
 type IStreameWriter interface {

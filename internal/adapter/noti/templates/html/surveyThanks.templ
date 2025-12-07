@@ -1,0 +1,55 @@
+package html
+
+templ SurveyThanksEmail(name, referralURL string) {
+@EmailLayoutHTML("Thanks for taking our survey!") {
+<table class="container" width="600" cellpadding="0" cellspacing="0">
+	<!-- HEADER -->
+	<tr>
+		<td class="header">
+			if name != "" {
+			<h1>Thanks for taking our survey{ name }!</h1>
+			} else {
+			<h1>Thanks for taking our survey!</h1>
+			}
+		</td>
+	</tr>
+	<!-- BODY -->
+	<tr>
+		<td class="body">
+			<p>
+				You just helped us make <strong>Lessor</strong> better for small landlords, property managers, and
+				restoration pros. Your answers directly influence what we build next.
+			</p>
+			<p>
+				As a reminder, by completing this survey you’ve been added to our
+				<strong>early-access list</strong>. When Lessor launches, you’ll be among the first to get in.
+			</p>
+			<p>
+				Want to move up the list? Share your personal referral link below.
+				Every person who joins using your link bumps you
+				<strong>one spot closer</strong> to the front.
+			</p>
+			<p style="margin-top: 24px; text-align: center;">
+				<a href={ referralURL } class="cta" target="_blank">
+					View my referral link
+				</a>
+			</p>
+			<p style="margin-top: 24px;">
+				Thanks again for your time and feedback — it really means a lot. 💛
+			</p>
+			<p>
+				– The Lessor team
+			</p>
+		</td>
+	</tr>
+	<!-- FOOTER -->
+	<tr>
+		<td class="footer">
+			<p>
+				If you have questions or want to share more thoughts, just reply to this email.
+			</p>
+		</td>
+	</tr>
+</table>
+}
+}

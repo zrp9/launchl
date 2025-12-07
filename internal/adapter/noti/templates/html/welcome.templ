@@ -1,33 +1,61 @@
 package html
 
-templ WelcomeHTML(name string) {
+templ WelcomeEmail(name, referralURL string) {
+@EmailLayoutHTML("Welcome to Lessor") {
 <table class="container" width="600" cellpadding="0" cellspacing="0">
-	<!--HEADER-->
+	<!-- HEADER -->
 	<tr>
-		<td style="background-color: #345c72; color: #ffffff; text-align: center; padding: 20px;">
-			<h1>{ name }, Welcome to Our Waitlist</h1>
+		<td class="header">
+			if name != "" {
+			<h1>Welcome to Alessor { name } </h1>
+			} else {
+			<h1>Welcome to Alessor </h1>
+			}
 		</td>
 	</tr>
-	<!--BODY-->
-	<td style="padding: 20px; font-size: 16px; line-height: 1.6;">
-		<p>Here's what you need to know</p>
-	</td>
+	<!-- BODY -->
 	<tr>
-		<td align="center" style="background: #345C72; padding: 10px 20px; border-radius: 5px;">
-			<a href="https://www.example.com" target="_blank"
-				style="color: #ffffff; text-decoration: none; font-weight: bold;">
-				Do something with
-				button
-			</a>
-		</td>
-	</tr>
-	<!--FOOTER-->
-	<tr>
-		<td style="background-color: #333333; color: #999999; text-align: center; padding: 20px;">
+		<td class="body">
 			<p>
-				Contact us at support@example.com
+				You’re officially on the Alessor <strong>early-access list</strong> — a simple property
+				and project management app built for small landlords and restoration pros.
+			</p>
+			<p>
+				Our goal is to give you one place to:
+			</p>
+			<ul>
+				<li>Track property expenses and taxes per property</li>
+				<li>Create accurate, AI-powered bids and job estimates</li>
+				<li>Manage maintenance requests and jobs in one board</li>
+				<li>Collect tenant payments and keep everything organized</li>
+			</ul>
+			<p>
+				As we get closer to launch, we’ll share sneak peeks, feature updates, and invite you to try new tools
+				before anyone else.
+			</p>
+			<p style="margin-top: 24px; text-align: center;">
+				<a href={ referralURL } class="cta" target="_blank">
+					Share my early-access link
+				</a>
+			</p>
+			<p style="margin-top: 24px;">
+				Every person who joins using your link moves you up the list — closer to day-one access.
+			</p>
+			<p>
+				Glad to have you with us,
+				<br />
+				– The Lessor team
+			</p>
+		</td>
+	</tr>
+	<!-- FOOTER -->
+	<tr>
+		<td class="footer">
+			<p>
+				You’re receiving this because you signed up for early access to Lessor.
 			</p>
 		</td>
 	</tr>
 </table>
+}
 }

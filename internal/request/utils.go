@@ -66,7 +66,6 @@ func WriteTimeoutResponse(w http.ResponseWriter) error {
 }
 
 func ParseJSON(r *http.Request, payload any) error {
-	log.Printf("parsing body: %v", r.Body)
 	defer r.Body.Close() //nolint:errcheck
 
 	if r.Body == nil {

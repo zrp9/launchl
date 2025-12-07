@@ -16,14 +16,24 @@ import (
 	"github.com/zrp9/launchl/internal/adapter/log/crane"
 	"github.com/zrp9/launchl/internal/auth"
 	"github.com/zrp9/launchl/internal/config"
+	"github.com/zrp9/launchl/internal/crsf"
 	"github.com/zrp9/launchl/internal/middleware"
 	"github.com/zrp9/launchl/internal/request"
 )
 
 func NewServer(cfg config.ServerCfg, mux *http.ServeMux, apis []rest.Handler) *http.Server {
-	log.Printf("MUX in server register: %p, apis=%d", mux, len(apis))
+	isDev := config.IsDevEnv()
+	log.Printf("DEV MODE server %v", isDev)
 	registerRoutes(mux, apis)
-	mwChain := middleware.MiddlewareChain(handlePanic, loggerMiddleware, AddJSONHeader, headerMiddleware, contextMiddleware)
+	mwChain := middleware.MiddlewareChain(
+		handlePanic,
+		loggerMiddleware,
+		AddJSONHeader,
+		headerMiddleware,
+		contextMiddleware,
+		crsf.ApplyCRSFToken(isDev),
+		crsf.ValidateCRSFToken(isDev, "/api/survey", "/api/subscribe"),
+	)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		_ = request.WriteJSON(w, http.StatusOK, "OK")
 	})
@@ -143,6 +153,7 @@ func handlePanic(next http.Handler) http.HandlerFunc {
 			if rec := recover(); rec != nil {
 				crane.DefaultLogger.MustDebug(fmt.Sprintf("panic recovered %v", rec))
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				log.Printf("SERVER PANIC:: %v", rec)
 				return
 			}
 		}()

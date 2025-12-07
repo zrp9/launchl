@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -71,17 +72,19 @@ type ValkeyCfg struct {
 }
 
 type ValkeyStreamCfg struct {
-	Group    string
-	Consumer string
-	Block    time.Duration
-	Count    int64
+	Name         string
+	Group        string
+	Consumer     string
+	Block        time.Duration
+	Count        int64
+	WriteRetries int64
+	Threshold    int64
 }
 
 type VkNotifierCfg struct {
-	NotificationType string
-	ClientCfg        ValkeyCfg
-	StreamCfg        ValkeyStreamCfg
-	SenderCfg        EmailCfg
+	ClientCfg ValkeyCfg
+	StreamCfg ValkeyStreamCfg
+	SenderCfg EmailCfg
 }
 
 type EmailCfg struct {
@@ -98,6 +101,11 @@ type JWTCfg struct {
 	Secret     string
 	Expiration time.Duration
 	Salty      string
+}
+
+func IsDevEnv() bool {
+	appEnv := initializeEnv()
+	return strings.ToLower(appEnv) == "dev"
 }
 
 func Load() (*Config, error) {
@@ -198,19 +206,45 @@ func LoadValkey() ValkeyCfg {
 	}
 }
 
+type ValkeyCacheStream struct {
+	Cache  ValkeyCfg
+	Stream ValkeyStreamCfg
+}
+
+func LoadCacheAndStreamCfg() ValkeyCacheStream {
+	_ = initializeEnv()
+	return ValkeyCacheStream{
+		Cache: ValkeyCfg{
+			Host: mustGetEnv("VALKEY_HOST"),
+			Port: mustGetEnv("VALKEY_PORT"),
+		},
+		Stream: ValkeyStreamCfg{
+			Name:         mustGetEnv("VALKEY_EMAIL_STREAM_NAME"),
+			Group:        mustGetEnv("VALKEY_EMAIL_GROUP"),
+			Consumer:     mustGetEnv("VALKEY_EMAIL_CONSUMER"),
+			Block:        getDurationEnv("VALKEY_EMAIL_BLOCK", 500),
+			Count:        getInt64Env("VALKEY_EMAIL_COUNT", 1000),
+			WriteRetries: getInt64Env("VALKEY_EMAIL_WRITE_RETRY", 3),
+			Threshold:    getInt64Env("VALKEY_THRESHOLD", 1000),
+		},
+	}
+}
+
 func LoadVkENotifierConfig() VkNotifierCfg {
 	_ = initializeEnv()
 	return VkNotifierCfg{
-		NotificationType: "email",
 		ClientCfg: ValkeyCfg{
 			Host: mustGetEnv("VALKEY_HOST"),
 			Port: mustGetEnv("VALKEY_PORT"),
 		},
 		StreamCfg: ValkeyStreamCfg{
-			Group:    mustGetEnv("VALKEY_EMAIL_GROUP"),
-			Consumer: mustGetEnv("VALKEY_EMAIL_CONSUMER"),
-			Block:    getDurationEnv("VALKEY_EMAIL_BLOCK", 500),
-			Count:    getInt64Env("VALKEY_EMAIL_COUNT", 1000),
+			Name:         mustGetEnv("VALKEY_EMAIL_STREAM_NAME"),
+			Group:        mustGetEnv("VALKEY_EMAIL_GROUP"),
+			Consumer:     mustGetEnv("VALKEY_EMAIL_CONSUMER"),
+			Block:        getDurationEnv("VALKEY_EMAIL_BLOCK", 500),
+			Count:        getInt64Env("VALKEY_EMAIL_COUNT", 1000),
+			WriteRetries: getInt64Env("VALKEY_EMAIL_WRITE_RETRY", 3),
+			Threshold:    getInt64Env("VALKEY_THRESHOLD", 1000),
 		},
 		SenderCfg: EmailCfg{
 			Sender:          mustGetEnv("EMAIL_SENDER"),

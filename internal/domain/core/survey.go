@@ -2,6 +2,7 @@
 package core
 
 import (
+	"context"
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
@@ -45,14 +46,15 @@ type Question struct {
 	Active       bool                   `bun:"type:boolean,notnull,nullzero,default:false" json:"active" validate:"boolean"`
 	Required     bool                   `bun:"type:boolean,notnull,nullzero,default:true" json:"required" validate:"boolean"`
 	MetaData     json.RawMessage        `bun:"type:jsonb,nullzero" json:"metaData" validate:"json"`
+	Name         string                 `bun:"type:varchar(255),notnull,nullzero" json:"name" validate:"alphanum"`
 	CreatedAt    time.Time              `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"createdAt"`
 	UpdatedAt    time.Time              `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"updatedAt"`
 }
 
 type SurveyQuestionOption struct {
 	bun.BaseModel `bun:"table:survey_question_options,alias:sqo"`
-	ID            uuid.UUID `bun:"id,pk,type:uuid" json:"id" validate:"uuidv4"`
-	QuestionID    uuid.UUID `bun:"type:uuid" json:"questionId" validate:"uuidv4"`
+	ID            uuid.UUID `bun:"id,pk,type:uuid,nullzero" json:"id" validate:"uuidv4"`
+	QuestionID    uuid.UUID `bun:"type:uuid,nullzero" json:"questionId" validate:"uuidv4"`
 	Position      int       `bun:"type:integer,notnull,nullzero,default:0" json:"position" validate:"numeric"`
 	Label         string    `bun:"type:varchar(255),notnull,nullzero" json:"label" validate:"alphanum"`
 	// value can be empty to support text responses
@@ -63,13 +65,13 @@ type SurveyQuestionOption struct {
 
 type SurveyResponse struct {
 	bun.BaseModel  `bun:"table:user_survey_responses,alias:sur"`
-	ID             uuid.UUID             `bun:"id,pk,type:uuid" json:"id" validate:"uuidv4"`
-	QuestionID     uuid.UUID             `bun:"type:uuid" json:"questionId" validate:"uuidv4"`
-	UserID         uuid.UUID             `bun:"type:uuid" json:"userId" validate:"uuidv4"`
-	OptionID       uuid.UUID             `bun:"type:uuid" json:"optionId" validate:"uuidv4"`
-	Question       *Question             `bun:"rel:belongs-to,join:question_id=id" json:"question"`
-	User           *User                 `bun:"rel:belongs-to,join:user_id=id" json:"user"`
-	QuestionOption *SurveyQuestionOption `bun:"rel:belongs-to,join:option_id=id" json:"questionOption"`
+	ID             uuid.UUID             `bun:"id,pk,type:uuid,nullzero" json:"id" validate:"uuidv4"`
+	QuestionID     uuid.UUID             `bun:"type:uuid,nullzero" json:"questionId" validate:"uuidv4"`
+	UserID         uuid.UUID             `bun:"type:uuid,nullzero" json:"userId" validate:"uuidv4"`
+	OptionID       uuid.UUID             `bun:"type:uuid,nullzero" json:"optionId,omitempty" validate:"uuidv4"`
+	Question       *Question             `bun:"rel:belongs-to,join:question_id=id" json:"question,omitempty"`
+	User           *User                 `bun:"rel:belongs-to,join:user_id=id" json:"user,omitempty"`
+	QuestionOption *SurveyQuestionOption `bun:"rel:belongs-to,join:option_id=id" json:"questionOption,omitempty"`
 	// WrittenResponse holds the response to text questions
 	WrittenResponse string    `bun:"type:text,nullzero" json:"writtenResponse,omitempty" validate:"alphanum"`
 	CreatedAt       time.Time `bun:"type:timestamptz,notnull,nullzero,default:current_timestamp" json:"createdAt"`
@@ -102,5 +104,18 @@ func (o *Options) Scan(src any) error {
 		return json.Unmarshal([]byte(v), o)
 	default:
 		return fmt.Errorf("unsupported src type %T for option", src)
+
 	}
+}
+
+var _ bun.BeforeAppendModelHook = (*SurveyResponse)(nil)
+
+func (m *SurveyResponse) BeforeAppendModel(ctx context.Context, query bun.Query) error {
+	switch query.(type) {
+	case *bun.InsertQuery:
+		m.CreatedAt = time.Now()
+	case *bun.UpdateQuery:
+		m.UpdatedAt = time.Now()
+	}
+	return nil
 }

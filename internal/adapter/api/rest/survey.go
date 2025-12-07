@@ -37,6 +37,7 @@ func (s SurveyHandler) HandleLogging(hn APIHandler) http.HandlerFunc {
 			if e, ok := err.(APIErr); ok {
 				request.WriteErr(w, e.Status, e)
 			}
+			log.Printf("requet failed err %v", err)
 			s.logger.MustError(err)
 		}
 	}
@@ -45,7 +46,7 @@ func (s SurveyHandler) HandleLogging(hn APIHandler) http.HandlerFunc {
 func (s SurveyHandler) RegisterRoutes(m *http.ServeMux) {
 	log.Printf("MUX in survey hndler register:  %p", m)
 	m.HandleFunc("GET /api/v1/survey", s.HandleLogging(s.HandleGetSurvey))
-	m.HandleFunc("POST /api/v1/survey/respond/{username}", s.HandleLogging(s.HandleSurveyResponse))
+	m.HandleFunc("POST /api/v1/survey/respond", s.HandleLogging(s.HandleSurveyResponse))
 }
 
 func (s SurveyHandler) HandleGetSurvey(w http.ResponseWriter, r *http.Request) error {
@@ -77,7 +78,6 @@ func (s SurveyHandler) HandleGetSurvey(w http.ResponseWriter, r *http.Request) e
 }
 
 func (s SurveyHandler) HandleSurveyResponse(w http.ResponseWriter, r *http.Request) error {
-	log.Printf("handle survey response api")
 	if err := r.Context().Err(); err != nil {
 		return APIErr{Status: http.StatusRequestTimeout, Err: err}
 	}
@@ -88,6 +88,7 @@ func (s SurveyHandler) HandleSurveyResponse(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := s.validator.Struct(payload); err != nil {
+		log.Println("failed validation")
 		errs := make([]string, 0)
 		for _, e := range err.(v.ValidationErrors) {
 			errs = append(errs, fmt.Sprintf("field %v failed because %v", e.StructField(), e.Error()))
@@ -95,12 +96,15 @@ func (s SurveyHandler) HandleSurveyResponse(w http.ResponseWriter, r *http.Reque
 		return APIErr{Status: http.StatusBadRequest, Err: errors.New(strings.Join(errs, ","))}
 	}
 
-	sResponse, err := converter.ConvertSurveyAnwsers(payload.Answers)
+	responses, usr, err := converter.ConvertSurveyAnwsers(payload)
 	if err != nil {
+		log.Printf("failed conversion %v", err)
 		return APIErr{Status: http.StatusBadRequest, Err: err}
 	}
+	log.Printf("responses %v", responses)
 
-	if err := s.s.CreateSurveyResponse(r.Context(), payload.UserEmail, sResponse); err != nil {
+	if err := s.s.CreateSurveyResponse(r.Context(), usr, responses); err != nil {
+		log.Printf("failed create %v", err)
 		s.logger.MustError(err)
 	}
 

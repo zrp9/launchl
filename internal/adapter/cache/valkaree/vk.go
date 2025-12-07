@@ -16,6 +16,7 @@ import (
 	"github.com/zrp9/launchl/internal/adapter/log/crane"
 	"github.com/zrp9/launchl/internal/config"
 	"github.com/zrp9/launchl/internal/domain"
+	"github.com/zrp9/launchl/internal/domain/ports"
 )
 
 var ErrEmptyCache = errors.New("no results found for given key")
@@ -72,8 +73,33 @@ func (v Cache) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-func (v Cache) Set(ctx context.Context, key, value string) error {
-	return v.client.Do(ctx, v.client.B().Set().Key(key).Value(value).Build()).Error()
+func (v Cache) Set(ctx context.Context, key, value string, opts ...ports.CacheOption) error {
+	cfg := &ports.CacheOptions{}
+
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	b := v.client.B().
+		Set().
+		Key(key).
+		Value(value)
+
+	if cfg.TTL > 0 {
+		b.Ex(cfg.TTL)
+	}
+	if cfg.KeepTTL {
+		b.Keepttl()
+	}
+	if cfg.NX {
+		b.Nx()
+	}
+	if cfg.XX {
+		b.Xx()
+	}
+
+	return v.client.Do(ctx, b.Build()).Error()
+	//return v.client.Do(ctx, v.client.B().Set().Key(key).Value(value).Build()).Error()
 }
 
 func (v Cache) Get(ctx context.Context, key string) (string, error) {
@@ -92,11 +118,16 @@ func (v Cache) Delete(ctx context.Context, key string) error {
 	return v.client.Do(ctx, v.client.B().Del().Key(key).Build()).Error()
 }
 
+func (v Cache) DeleteMulti(ctx context.Context, keys []string) error {
+	return v.client.Do(ctx, v.client.B().Del().Key(keys...).Build()).Error()
+}
+
 type Stream struct {
-	client    valkey.Client
-	Key       string
-	threshold int64
-	log       crane.Zlogrus
+	client       valkey.Client
+	Key          string
+	threshold    int64
+	writeRetries int64
+	log          crane.Zlogrus
 }
 
 type writer struct {
@@ -110,13 +141,13 @@ type reader struct {
 	Group    string
 	Consumer string
 	Block    time.Duration
-	Count    int64
+	count    int64
 }
 
 type admin struct {
-	s        *Stream
-	Group    string
-	Consumer string
+	s *Stream
+	// Group    string
+	// Consumer string
 }
 
 type master struct {
@@ -125,9 +156,16 @@ type master struct {
 	admin
 }
 
+type Event struct {
+	DataType  string
+	EventType string
+	Target    string
+	Src       string
+}
+
 type StreamWriter interface {
 	Write(ctx context.Context, fields domain.StreamEntry) (string, error)
-	WriteEvent(ctx context.Context, kind, target, src string, payload json.RawMessage) (string, error)
+	WriteEvent(ctx context.Context, event Event, payload json.RawMessage) (string, error)
 	WriteJSON(ctx context.Context, fieldName string, payload []byte) (string, error)
 }
 
@@ -139,17 +177,19 @@ type StreamReader interface {
 	AckDel(ctx context.Context, ids ...string) (int64, error)
 	ClaimIdle(ctx context.Context, minIdle time.Duration) (string, []domain.Message, error)
 	Pending(ctx context.Context) ([]domain.Message, error)
+	Count() int64
 }
 
+// StreamAdmin update this so it can create a stream then enable delete stream
 type StreamAdmin interface {
-	CreateGroup(ctx context.Context) error
+	CreateGroup(ctx context.Context, group string) error
 	TrimApprox(ctx context.Context) (int64, error)
-	DeleteStream(ctx context.Context) error
-	DeleteGroup(ctx context.Context) error
-	DeleteConsumer(ctx context.Context) error
+	//DeleteStream(ctx context.Context) error
+	DeleteGroup(ctx context.Context, group string) error
+	DeleteConsumer(ctx context.Context, group, consumer string) error
 	StreamInfo(ctx context.Context) error
 	GroupInfo(ctx context.Context) error
-	ConsumerInfo(ctx context.Context) error
+	ConsumerInfo(ctx context.Context, group, consumer string) error
 }
 
 type StreamMaster interface {
@@ -158,12 +198,13 @@ type StreamMaster interface {
 	StreamAdmin
 }
 
-func NewStream(client valkey.Client, key string, threshold int64, log crane.Zlogrus) *Stream {
+func NewStream(client valkey.Client, key string, writeRetries, threshold int64, log crane.Zlogrus) *Stream {
 	return &Stream{
-		client:    client,
-		Key:       key,
-		threshold: threshold,
-		log:       log,
+		client:       client,
+		Key:          key,
+		writeRetries: writeRetries,
+		threshold:    threshold,
+		log:          log,
 	}
 }
 
@@ -175,15 +216,15 @@ func (s *Stream) Reader(group, consumer string, block time.Duration, count int64
 		Group:    group,
 		Consumer: consumer,
 		Block:    block,
-		Count:    count,
+		count:    count,
 	}
 }
 
-func (s *Stream) Admin(group, consumer string) StreamAdmin {
+func (s *Stream) Admin() StreamAdmin {
 	return admin{
-		s:        s,
-		Group:    group,
-		Consumer: consumer,
+		s: s,
+		// Group:    group,
+		// Consumer: consumer,
 	}
 }
 
@@ -195,18 +236,18 @@ func (s *Stream) Master(group, consumer string, block time.Duration, count int64
 			Group:    group,
 			Consumer: consumer,
 			Block:    block,
-			Count:    count,
+			count:    count,
 		},
 		admin: admin{
-			s:        s,
-			Group:    group,
-			Consumer: consumer,
+			s: s,
+			// Group:    group,
+			// Consumer: consumer,
 		},
 	}
 }
 
-func (r admin) CreateGroup(ctx context.Context) error {
-	res := r.s.client.Do(ctx, r.s.client.B().XgroupCreate().Key(r.s.Key).Group(r.Group).Id("$").Mkstream().Build())
+func (r admin) CreateGroup(ctx context.Context, group string) error {
+	res := r.s.client.Do(ctx, r.s.client.B().XgroupCreate().Key(r.s.Key).Group(group).Id("$").Mkstream().Build())
 
 	if err := res.Error(); err != nil {
 		var vErr *valkey.ValkeyError
@@ -214,6 +255,7 @@ func (r admin) CreateGroup(ctx context.Context) error {
 			// group already exists
 			return nil
 		}
+		log.Printf("error creating group %v", err)
 		return err
 	}
 
@@ -238,25 +280,28 @@ func (w writer) Write(ctx context.Context, fields domain.StreamEntry) (string, e
 	return w.s.client.Do(ctx, cmd.Build()).ToString()
 }
 
-func (w writer) WriteEvent(ctx context.Context, kind, target, src string, payload json.RawMessage) (string, error) {
+func (w writer) WriteEvent(ctx context.Context, event Event, payload json.RawMessage) (string, error) {
+	log.Println("")
+	log.Printf("stream %v write event: target: %v,kind: %v, src: %v payload: %v", w.s.Key, event.Target, event.EventType, event.Src, payload)
+	log.Println("")
 	cmd := w.s.client.B().Xadd().Key(w.s.Key).Maxlen().Almost().Threshold(w.s.Threshold()).Id("*").FieldValue().FieldValueIter(func(yield func(string, string) bool) {
 		if !yield("jid", uuid.NewString()) {
 			return
 		}
 
-		if !yield("kind", kind) {
+		if !yield("eventType", event.EventType) {
 			return
 		}
 
-		if !yield("target", target) {
+		if !yield("target", event.Target) {
 			return
 		}
 
-		if !yield("source", src) {
+		if !yield("source", event.Src) {
 			return
 		}
 
-		if !yield("retryLimit", "3") {
+		if !yield("retryLimit", strconv.FormatInt(w.s.writeRetries, 10)) {
 			return
 		}
 
@@ -276,14 +321,17 @@ func (w writer) WriteJSON(ctx context.Context, jsonField string, payload []byte)
 }
 
 func (r reader) ReadGroup(ctx context.Context, count int64) ([]domain.Message, error) {
+	log.Printf("reading from stream %v", r.s.Key)
+	log.Printf("reading to group %v", r.Group)
 	var c int64
 	if count == 0 {
-		c = r.Count
+		c = r.count
 	}
 
 	cmd := r.s.client.B().Xreadgroup().Group(r.Group, r.Consumer).Count(c).Block(r.Block.Milliseconds()).Streams().Key(r.s.Key).Id(">").Build()
 	res := r.s.client.Do(ctx, cmd)
 	if err := res.Error(); err != nil {
+		log.Printf("error reading group %v", err)
 		if valkey.IsValkeyNil(err) {
 			return nil, nil
 		}
@@ -295,6 +343,7 @@ func (r reader) ReadGroup(ctx context.Context, count int64) ([]domain.Message, e
 		return nil, err
 	}
 
+	log.Printf("read group success")
 	return msgs, nil
 }
 
@@ -346,7 +395,7 @@ func (r reader) AckDel(ctx context.Context, ids ...string) (int64, error) {
 }
 
 func (r reader) ClaimIdle(ctx context.Context, minIdle time.Duration) (next string, msgs []domain.Message, err error) {
-	cmd := r.s.client.B().Xautoclaim().Key(r.s.Key).Group(r.Group).Consumer(r.Consumer).MinIdleTime(r.s.toMs(minIdle)).Start("0-0").Count(r.Count).Build()
+	cmd := r.s.client.B().Xautoclaim().Key(r.s.Key).Group(r.Group).Consumer(r.Consumer).MinIdleTime(r.s.toMs(minIdle)).Start("0-0").Count(r.count).Build()
 
 	res := r.s.client.Do(ctx, cmd)
 	if err := res.Error(); err != nil {
@@ -365,19 +414,23 @@ func (r reader) Pending(ctx context.Context) ([]domain.Message, error) {
 	return r.s.parseXRead(res)
 }
 
+func (r reader) Count() int64 {
+	return r.count
+}
+
 func (r admin) TrimApprox(ctx context.Context) (int64, error) {
 	cmd := r.s.client.B().Xtrim().Key(r.s.Key).Maxlen().Almost().Threshold(r.s.Threshold()).Acked().Build()
 	return r.s.client.Do(ctx, cmd).ToInt64()
 }
 
-func (r admin) DeleteStream(ctx context.Context) error {
-	cmd := r.s.client.B().Del().Key(r.s.Key).Build()
-	res := r.s.client.Do(ctx, cmd)
-	return res.Error()
-}
+// func (r admin) DeleteStream(ctx context.Context) error {
+// 	cmd := r.s.client.B().Del().Key(r.s.Key).Build()
+// 	res := r.s.client.Do(ctx, cmd)
+// 	return res.Error()
+// }
 
-func (r admin) DeleteGroup(ctx context.Context) error {
-	cmd := r.s.client.B().XgroupDestroy().Key(r.s.Key).Group(r.Group).Build()
+func (r admin) DeleteGroup(ctx context.Context, group string) error {
+	cmd := r.s.client.B().XgroupDestroy().Key(r.s.Key).Group(group).Build()
 	if err := r.s.client.Do(ctx, cmd).Error(); err != nil {
 		r.s.log.MustDebug(fmt.Sprintf("error occurred while deleting stream group %v", err))
 		return err
@@ -385,8 +438,8 @@ func (r admin) DeleteGroup(ctx context.Context) error {
 	return nil
 }
 
-func (r admin) DeleteConsumer(ctx context.Context) error {
-	cmd := r.s.client.B().XgroupDelconsumer().Key(r.s.Key).Group(r.Group).Consumername(r.Consumer).Build()
+func (r admin) DeleteConsumer(ctx context.Context, group, consumer string) error {
+	cmd := r.s.client.B().XgroupDelconsumer().Key(r.s.Key).Group(group).Consumername(consumer).Build()
 	if err := r.s.client.Do(ctx, cmd).Error(); err != nil {
 		r.s.log.MustDebug(fmt.Sprintf("error deleting stream consumer %v", err))
 		return err
@@ -409,8 +462,8 @@ func (r admin) GroupInfo(ctx context.Context) error {
 	return nil
 }
 
-func (r admin) ConsumerInfo(ctx context.Context) error {
-	cmd := r.s.client.B().XinfoConsumers().Key(r.s.Key).Group(r.Group).Build()
+func (r admin) ConsumerInfo(ctx context.Context, group, consumer string) error {
+	cmd := r.s.client.B().XinfoConsumers().Key(r.s.Key).Group(group).Build()
 	res := r.s.client.Do(ctx, cmd)
 	log.Printf("x info consumer result %#v", res)
 	return nil
@@ -518,3 +571,21 @@ var _ StreamWriter = (*writer)(nil)
 var _ StreamReader = (*reader)(nil)
 var _ StreamAdmin = (*admin)(nil)
 var _ StreamMaster = (*master)(nil)
+
+func WithTTL(d time.Duration) ports.CacheOption {
+	return func(o *ports.CacheOptions) {
+		o.TTL = d
+	}
+}
+
+func WithNX() ports.CacheOption {
+	return func(o *ports.CacheOptions) {
+		o.NX = true
+	}
+}
+
+func WithKeepTTL() ports.CacheOption {
+	return func(o *ports.CacheOptions) {
+		o.KeepTTL = true
+	}
+}

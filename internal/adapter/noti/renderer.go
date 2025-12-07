@@ -1,78 +1,91 @@
 package noti
 
 import (
+	"bytes"
+	"context"
 	"embed"
-	"html/template"
+	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strings"
 	texttmpl "text/template"
+
+	zhtml "github.com/zrp9/launchl/internal/adapter/noti/templates/html"
 )
 
-//go:embed templates/html templates/text
+//go:embed templates/text/*.tmpl
 var fs embed.FS
 
 type Renderer struct {
-	html *template.Template
-	txt  *texttmpl.Template
+	txt *texttmpl.Template
 }
 
 func NewRenderer() (*Renderer, error) {
-	r := &Renderer{}
-	if err := r.reload(); err != nil {
+	txt, err := texttmpl.ParseFS(fs, "templates/text/*.tmpl")
+	if err != nil {
 		return nil, err
 	}
-	return r, nil
-}
 
-func (r *Renderer) reload() error {
-	htmlFns, txtFns := HTMLFuncMap(), TextFuncMap()
-
-	// Parse HTML
-	h := template.New("html").Funcs(htmlFns)
-	for _, p := range []string{
-		"templates/html/*.html.tmpl",
-		"templates/html/*.html.tmpl",
-		"templates/**/*.html.tmpl",
-	} {
-		var err error
-		h, err = h.ParseFS(fs, p)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Parse Text
-	t := texttmpl.New("txt").Funcs(txtFns)
-	for _, p := range []string{
-		"templates/text/*.txt.tmpl",
-		"templates/text/*.txt.tmpl",
-		"templates/**/*.txt.tmpl",
-	} {
-		var err error
-		t, err = t.ParseFS(fs, p)
-		if err != nil {
-			return err
-		}
-	}
-
-	r.html, r.txt = h, t
-	return nil
+	return &Renderer{
+		txt: txt,
+	}, nil
 }
 
 // Render name like "account/verify"
-func (r *Renderer) Render(name string, data any) (htmlBody, textBody string, err error) {
-	htmlName := strings.TrimSuffix(name, filepath.Ext(name)) + ".html.tmpl"
-	txtName := strings.TrimSuffix(name, filepath.Ext(name)) + ".txt.tmpl"
+func (r *Renderer) Render(templateName string, data EmailJob) (htmlBody, textBody string, err error) {
+	ctx := context.Background()
+	var htmlBuf bytes.Buffer
+	// ---- TEXT via text/template ----
+	// assumes:
+	// templates/text/surveyThanks.txt.tmpl
+	// templates/text/welcome.txt.tmpl
+	var txtBuf bytes.Buffer
+	switch templateName {
+	case "surveyThanks":
+		var d SurveyThanksData
+		if err = json.Unmarshal(data.Data, &d); err != nil {
+			return "", "", fmt.Errorf("failed to parse json %w", err)
+		}
 
-	var b strings.Builder
-	if err = r.html.ExecuteTemplate(&b, htmlName, data); err != nil {
-		return "", "", err
+		// html template
+		comp := zhtml.SurveyThanksEmail(d.Name, d.ReferralURL)
+		if err = comp.Render(ctx, &htmlBuf); err != nil {
+			return "", "", fmt.Errorf("render html template (surveyThanks) error: %w", err)
+		}
+
+		if err = r.renderTxtTemplate(&txtBuf, templateName, d); err != nil {
+			return "", "", fmt.Errorf("render txt template (surveyThanks) error :%w", err)
+		}
+
+	case "welcome":
+		var d WelcomeData
+		if err = json.Unmarshal(data.Data, &d); err != nil {
+			return "", "", fmt.Errorf("failed to parse json %w", err)
+		}
+
+		comp := zhtml.WelcomeEmail(d.Name, d.ReferralURL)
+		if err = comp.Render(ctx, &htmlBuf); err != nil {
+			return "", "", fmt.Errorf("render html template (welcome) error: %w", err)
+		}
+
+		if err = r.renderTxtTemplate(&txtBuf, templateName, d); err != nil {
+			return "", "", fmt.Errorf("render txt template (welcome) error :%w", err)
+		}
+
+	default:
+		return "", "", fmt.Errorf("unknown email template: %q", templateName)
 	}
-	htmlBody = b.String()
-	b.Reset()
-	if err = r.txt.ExecuteTemplate(&b, txtName, data); err != nil {
-		return "", "", err
+
+	htmlStr := htmlBuf.String()
+
+	return htmlStr, txtBuf.String(), nil
+}
+
+func (r *Renderer) renderTxtTemplate(buffer *bytes.Buffer, templateName string, data any) error {
+	// txt template
+	txtName := strings.TrimSuffix(templateName, filepath.Ext(templateName)) + ".txt.tmpl"
+	if err := r.txt.ExecuteTemplate(buffer, txtName, data); err != nil {
+		return err
 	}
-	textBody = b.String()
-	return
+	return nil
 }

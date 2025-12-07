@@ -12,52 +12,68 @@ type Converter interface {
 	FromDTO(data any) (any, error)
 }
 
+func MakeSubscribeUser(data dto.UserSubscribeRequest) *core.User {
+	return &core.User{
+		Email:     data.Email,
+		FirstName: data.FirstName,
+		LastName:  data.LastName,
+	}
+}
+
 func MakeCreateUser(data dto.UserCreateRequest) *core.User {
 	return &core.User{
 		Email:       data.Email,
-		Phone:       data.Phone,
 		FirstName:   data.FirstName,
 		LastName:    data.LastName,
-		WouldUse:    data.WouldUse,
 		CompanyName: data.CompanyName,
 	}
 }
 
 func ConvertSurveyAnwser(data dto.SurveyAnwser) (core.SurveyResponse, error) {
+	id := uuid.New()
 	qID, err := uuid.Parse(data.QuestionID)
 	if err != nil {
 		return core.SurveyResponse{}, err
 	}
 
-	opID, err := uuid.Parse(data.OptionID)
-	if err != nil {
-		return core.SurveyResponse{}, err
-	}
+	if data.QuestionType != "text" {
+		opID, err := uuid.Parse(data.OptionID)
+		if err != nil {
+			return core.SurveyResponse{}, err
+		}
 
-	usrID, err := uuid.Parse(data.UserID)
-	if err != nil {
-		return core.SurveyResponse{}, err
+		return core.SurveyResponse{
+			ID:         id,
+			QuestionID: qID,
+			OptionID:   opID,
+		}, nil
 	}
 
 	return core.SurveyResponse{
+		ID:              id,
 		QuestionID:      qID,
-		OptionID:        opID,
-		UserID:          usrID,
-		WrittenResponse: data.WrittenAnwser,
+		WrittenResponse: data.WrittenResponse,
 	}, nil
 }
 
-func ConvertSurveyAnwsers(data []dto.SurveyAnwser) ([]core.SurveyResponse, error) {
-	anwsers := make([]core.SurveyResponse, len(data))
-	for _, anwsDTO := range data {
+func ConvertSurveyAnwsers(data dto.SurveyAnwsers) ([]core.SurveyResponse, core.User, error) {
+	anwsers := make([]core.SurveyResponse, 0, len(data.Answers))
+	for _, anwsDTO := range data.Answers {
 		anws, err := ConvertSurveyAnwser(anwsDTO)
 		if err != nil {
-			return nil, err
+			return nil, core.User{}, err
 		}
 		anwsers = append(anwsers, anws)
 	}
 
-	return anwsers, nil
+	user := core.User{
+		FirstName:   data.FirstName,
+		LastName:    data.LastName,
+		Email:       data.UserEmail,
+		CompanyName: data.CompanyName,
+	}
+
+	return anwsers, user, nil
 }
 
 func MakeSurveyResponse(data core.Survey) dto.SurveyResponse {

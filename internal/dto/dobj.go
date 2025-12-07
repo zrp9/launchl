@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/zrp9/launchl/internal/adapter/noti"
+	"github.com/zrp9/launchl/internal/domain/core"
 )
 
 type Transferer interface {
@@ -79,20 +81,29 @@ type SignupDto struct {
 }
 
 type EmailDTO struct {
-	To              []string       `json:"to"`
-	Data            map[string]any `json:"data,omitempty"`
-	Template        string         `json:"template"`
-	TemplateVersion string         `json:"templateVersion,omitempty"`
-	Subject         string         `json:"subject,omitempty"`
+	To []string `json:"to"`
+	// Metadata        map[string]any `json:"data,omitempty"`
+	Metadata        any    `json:"metaData,omitempty"`
+	Template        string `json:"template"`
+	TemplateVersion string `json:"templateVersion,omitempty"`
+	Subject         string `json:"subject,omitempty"`
 }
 
-func CreateEmailPayload(toAddr, subject, notificationType string, tmplVersion int) ([]byte, error) {
-	to := []string{toAddr}
-	evnt := EmailDTO{
-		To:              to,
+func CreateEmailPayload(toAddr, subject, notificationType string, tmplVersion int, metadata any) ([]byte, error) {
+	jsondata, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	e := core.Email{
+		To:      []string{toAddr},
+		Data:    jsondata,
+		Subject: subject,
+	}
+	evnt := noti.EmailJob{
+		Email:           e,
 		Template:        notificationType,
 		TemplateVersion: strconv.Itoa(tmplVersion),
-		Subject:         subject,
 	}
 
 	data, err := json.Marshal(evnt)

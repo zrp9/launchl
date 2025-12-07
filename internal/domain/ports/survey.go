@@ -21,7 +21,7 @@ type ISurveyRepo interface {
 	UpdateQuestionOption(ctx context.Context, op *core.SurveyQuestionOption) error
 	DeleteOption(ctx context.Context, id string) error
 	GetAllSurveyResponses(ctx context.Context) ([]*core.SurveyResponse, error)
-	CreateSurveyResponse(ctx context.Context, responses []core.SurveyResponse) error
+	CreateSurveyResponse(ctx context.Context, user *core.User, responses []core.SurveyResponse) error
 }
 
 type ISurveyService interface {

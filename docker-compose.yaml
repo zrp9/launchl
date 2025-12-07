@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   app:
-    container_name: launchl-container
+    container_name: launch-list
     depends_on:
       postgres:
         condition: service_healthy
@@ -10,6 +10,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    image: launchl-dev
     env_file:
       - .env
     ports:
@@ -21,8 +22,27 @@ services:
     networks:
      - launchl-network
 
+  email-worker:
+    container_name: ll-email-worker
+    image: launchl-dev
+    # if you make a seperate air.toml file to run ./cmd/emailer you can make it have hot reload
+    command: ["go", "run", "./cmd/emailworker"]
+    working_dir: /app
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - launchl-network
+
   valkey:
-    container_name: launcl-valkey
+    container_name: ll-valkey
     image: valkey/valkey:7-alpine
     ports:
       - "6379:6379"
@@ -38,7 +58,7 @@ services:
       - launchl-network
 
   postgres:
-    container_name: launchl-db
+    container_name: ll-db
     image: postgres:15-alpine
     env_file:
       - .env

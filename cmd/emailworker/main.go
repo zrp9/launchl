@@ -15,6 +15,7 @@ import (
 )
 
 func main() {
+	log.Println("email worker running...")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -40,7 +41,13 @@ func run(ctx context.Context, conf config.VkNotifierCfg, logger crane.Zlogrus) e
 		return err
 	}
 
-	stream := valkaree.NewStream(valkeyClient, conf.StreamCfg.Group, conf.StreamCfg.Count, logger)
+	stream := valkaree.NewStream(valkeyClient, conf.StreamCfg.Name, conf.StreamCfg.WriteRetries, conf.StreamCfg.Count, logger)
+	admin := stream.Admin()
+	if err = admin.CreateGroup(ctx, conf.StreamCfg.Group); err != nil {
+		log.Printf("failed to create group %v", err)
+		return err
+	}
+
 	render, err := noti.NewRenderer()
 	if err != nil {
 		return err

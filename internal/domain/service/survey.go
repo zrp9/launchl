@@ -5,16 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/zrp9/launchl/internal/adapter/cache/valkaree"
 	"github.com/zrp9/launchl/internal/adapter/log/crane"
+	"github.com/zrp9/launchl/internal/adapter/noti"
 	"github.com/zrp9/launchl/internal/adapter/repo/pgsql"
 	"github.com/zrp9/launchl/internal/domain/core"
 	"github.com/zrp9/launchl/internal/dto"
 )
 
 const (
-	surveyKey = "x-serv"
+	surveyKey = "ll-survey"
 	notiSrc   = "survey-service"
 )
 
@@ -52,6 +54,7 @@ func (s SurveyService) GetSurvey(ctx context.Context) (*core.Survey, error) {
 		}
 
 		if survey != nil {
+			log.Printf("using survey %v", survey)
 			return survey, nil
 		}
 	}
@@ -63,30 +66,40 @@ func (s SurveyService) GetSurvey(ctx context.Context) (*core.Survey, error) {
 	return survey, nil
 }
 
-func (s SurveyService) CreateSurveyResponse(ctx context.Context, usrEmail string, responses []core.SurveyResponse) error {
-	err := s.repo.CreateSurveyResponse(ctx, responses)
-
+func (s SurveyService) CreateSurveyResponse(ctx context.Context, usr core.User, responses []core.SurveyResponse) error {
+	err := s.repo.CreateSurveyResponse(ctx, &usr, responses)
 	if err != nil {
 		return err
 	}
 
 	// TODO: I dont think the email dto doesn't need a subject because that will be determined by template?
 	go func() {
+		log.Println("routine to send email...")
+		nCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
 		data, err := dto.CreateEmailPayload(
-			usrEmail,
+			usr.Email,
 			"Thank you For Taking Our Survey",
 			"surveyThanks",
-			emailNotificationCfg.SenderCfg.TemplateVersion,
+			streamCfg.SenderCfg.TemplateVersion,
+			noti.SurveyThanksData{
+				Name:        fmt.Sprintf("%v %v", usr.FirstName, usr.LastName),
+				ReferralURL: usr.ReferalURL,
+			},
 		)
+
+		log.Printf("sending email %v", data)
 		if err != nil {
 			s.logger.MustTraceErr(fmt.Errorf("failed to create email payload for survey notification %v", err))
 			log.Printf("failed to create email payload for survey notification %v", err)
 		}
 
-		if _, err := s.stream.WriteEvent(ctx, emailNotificationCfg.NotificationType, emailNotificationCfg.StreamCfg.Group, notiSrc, data); err != nil {
+		if _, err := s.stream.WriteEvent(nCtx, valkaree.Event{EventType: "survey", Target: streamCfg.StreamCfg.Group, Src: notiSrc}, data); err != nil {
 			s.logger.MustTraceErr(fmt.Errorf("failed to write email stream event %v", err))
 			log.Printf("failed to write email stream event %v", err)
 		}
+
+		log.Println("finished notification routine...")
 	}()
 
 	return nil

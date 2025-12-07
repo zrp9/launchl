@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"log"
 
 	"github.com/uptrace/bun"
 	"github.com/zrp9/launchl/internal/domain/core"
@@ -36,23 +38,41 @@ func (u UserRepo) GetByEmail(ctx context.Context, email string) (*core.User, err
 }
 
 func (u UserRepo) Create(ctx context.Context, user *core.User, rolename string) (*core.User, error) {
-	var usr = user
 	tx, err := u.repo.BnDB().BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, errors.Join(ErrFailedTransaction, err)
 	}
+
+	defer func() {
+		if err != nil {
+			if e := tx.Rollback(); e != nil {
+				log.Printf("failed to rollback transaction %v", err)
+			}
+		}
+	}()
 
 	var role core.Role
 	if err = tx.NewSelect().Model(&role).Where("? = ?", bun.Ident("name"), rolename).Scan(ctx, &role); err != nil {
 		return nil, err
 	}
 
-	user.Role = &role
-	err = tx.NewInsert().Model(&user).Returning("*").Scan(ctx, &usr)
+	user.SetRoleID(role.ID)
+	usrCount, err := tx.NewSelect().Model((*core.User)(nil)).Count(ctx)
 	if err != nil {
-		if txErr := tx.Rollback(); txErr != nil {
-			return nil, errors.Join(ErrFailedTransaction, err)
-		}
+		return nil, fmt.Errorf("could not determine que size %v", err)
+	}
+
+	user.SetQuePosition(int64(usrCount) + 1)
+	if err = user.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err = user.Validate(); err != nil {
+		return nil, err
+	}
+
+	err = tx.NewInsert().Model(user).Returning("*").Scan(ctx, user)
+	if err != nil {
 		return nil, err
 	}
 
@@ -60,7 +80,7 @@ func (u UserRepo) Create(ctx context.Context, user *core.User, rolename string) 
 		return nil, err
 	}
 
-	return usr, nil
+	return user, nil
 }
 
 func (u UserRepo) DeleteByEmail(ctx context.Context, email string) error {

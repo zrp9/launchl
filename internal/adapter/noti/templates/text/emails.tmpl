@@ -1,12 +1,27 @@
 
-{{ define "welcome.txt.tmpl" -}}
-Hi {{ .Name }},
+{{ define "welcome.txt.tmpl"}}
+Hi {{ if .Name }}{{ .Name }}{{ else }}there{{ end }},
 
-Welcome to {{ .AppName }}! We're glad you're here.
+Welcome to {{ .ProductName }}! You’re officially on the early-access list.
 
-Get started: {{ .StartURL }}
+{{ .ProductName }} is a simple property and project management tool designed for small landlords,
+property managers, and restoration pros. Our goal is to give you one place to:
 
-— The {{ .AppName }} Team
+- Track expenses and taxes per property
+- Create accurate, AI-powered bids and estimates
+- Manage maintenance requests and jobs
+- Keep payments and communication organized
+
+As we get closer to launch, we’ll send you product updates and early-access invites.
+
+You can also move up the early-access list by sharing your personal referral link:
+
+{{ if .ReferralURL }}{{ .ReferralURL }}{{ end }}
+
+Each person who signs up using your link bumps you up the queue.
+
+Glad to have you with us,
+– The {{ .ProductName }} team
 {{- end }}
 
 {{ define "reminder.txt.tmpl" -}}
@@ -20,3 +35,13 @@ Manage your event: {{ .EventURL }}
 Thanks,
 {{ .AppName }} Team
 {{- end }}
+
+
+{{ define "surveyThanks.txt.tmpl" -}}
+{{ .Name }}, thank you for taking our survey.
+By doing so you are directly helping us improve Alessor.
+When you subscribe you gain automatically are added to the early access line.
+If you refer others to Alessor and they subscribe you can move forward one spot for every referal.
+Get your referal link here.
+{{ .ReferralURL }}
+{{- end}}

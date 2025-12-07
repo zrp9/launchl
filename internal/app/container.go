@@ -41,14 +41,15 @@ func New(s pgsql.PGClient, l *crane.Zlogrus) *Container {
 }
 
 func (c *Container) RegisterServices(ctx context.Context, names []string) error {
-	vconf := config.LoadValkey()
-	valkeyClient, err := valkaree.NewClient(ctx, vconf)
+	vconf := config.LoadCacheAndStreamCfg()
+	valkeyClient, err := valkaree.NewClient(ctx, vconf.Cache)
 	if err != nil {
 		return err
 	}
 
 	cache := valkaree.NewCache(valkeyClient)
-	stream := valkaree.NewStream(valkeyClient, "email-notifications", 1000, *c.logger)
+	log.Printf("creating stream %v", vconf.Stream.Name)
+	stream := valkaree.NewStream(valkeyClient, vconf.Stream.Name, vconf.Stream.WriteRetries, vconf.Stream.Threshold, *c.logger)
 
 	for _, name := range names {
 		service, err := c.createService(cache, *stream, name)

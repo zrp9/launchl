@@ -55,6 +55,7 @@ func (u UserHandler) HandleLogging(hn APIHandler) http.HandlerFunc {
 			} else {
 				request.WriteErr(w, http.StatusInternalServerError, err)
 			}
+			log.Printf("[ERROR]: %v", err)
 			u.logger.MustError(err)
 		}
 	}
@@ -66,7 +67,7 @@ func (u UserHandler) HandleSubscribe(w http.ResponseWriter, r *http.Request) err
 		return ReturnErr(http.StatusRequestTimeout, request.ErrReqTimeout)
 	}
 
-	var payload dto.UserCreateRequest
+	var payload dto.UserSubscribeRequest
 	if err := request.ParseJSON(r, &payload); err != nil {
 		return ReturnErr(http.StatusBadRequest, err)
 	}
@@ -75,7 +76,7 @@ func (u UserHandler) HandleSubscribe(w http.ResponseWriter, r *http.Request) err
 		return ReturnErr(http.StatusBadRequest, err)
 	}
 
-	usr := converter.MakeCreateUser(payload)
+	usr := converter.MakeSubscribeUser(payload)
 	nUser, err := u.s.CreateUser(r.Context(), usr)
 
 	if err != nil {
